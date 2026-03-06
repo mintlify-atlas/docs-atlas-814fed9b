@@ -1,0 +1,108 @@
+{
+  "projectType": "frontend",
+  "projectName": "HiBeat Pro",
+  "projectDescription": "A React Native music streaming and downloading application with YouTube Music integration.",
+  "theme": "almond",
+  "primaryColor": "#ee6d2d",
+  "lightColor": "#36ab56",
+  "darkColor": "#73a2f0",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/music-streaming",
+              "features/music-downloads",
+              "features/search-discovery",
+              "features/background-playback"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/project-structure",
+              "development/state-management",
+              "development/navigation",
+              "development/services"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "components/player",
+              "components/album",
+              "components/playlist",
+              "components/search"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Services",
+            "pages": [
+              "api/streaming-service",
+              "api/downloader-service",
+              "api/track-player-service"
+            ]
+          },
+          {
+            "group": "Hooks",
+            "pages": [
+              "api/hooks/use-search",
+              "api/hooks/use-album",
+              "api/hooks/use-playlist",
+              "api/hooks/use-artist"
+            ]
+          },
+          {
+            "group": "Store",
+            "pages": [
+              "api/store/album-store",
+              "api/store/playlist-store",
+              "api/store/search-store",
+              "api/store/track-store"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Stream music from YouTube Music",
+    "Download tracks with metadata and album art",
+    "Search by artist, album, or playlist",
+    "Background audio playback",
+    "Custom music player UI",
+    "Album and playlist browsing",
+    "Artist profiles and related content",
+    "Offline playback of downloaded tracks"
+  ],
+  "publicApiSurface": [
+    "getStreamingData(idTrack: string): Promise<AddTrack>",
+    "TrackDownloader(format: string, trackInfo: SongDetailed | Song, trckImg: string)",
+    "useSearchResult(something: string): UseQueryResult<SearchResult, Error>",
+    "useAlbum(idAlbum: string)",
+    "usePlaylist(idPlaylist: string)",
+    "useArtist(idArtist: string)",
+    "SetupPlayer()",
+    "PlaybackService()",
+    "albumStore",
+    "playlistStore",
+    "searchStore",
+    "trackStackStore"
+  ]
+}
