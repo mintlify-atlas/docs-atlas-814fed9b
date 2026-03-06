@@ -1,0 +1,280 @@
+---
+title: 'Track Player Service'
+description: 'Initialize and manage audio playback with react-native-track-player'
+---
+
+## Overview
+
+The Track Player Service provides setup and playback control functionality for the audio player. It configures the player capabilities, handles remote control events, and manages playback behavior.
+
+## SetupPlayer
+
+Initializes the track player with capabilities and playback options.
+
+### Function Signature
+
+```typescript
+SetupPlayer(): Promise<void>
+```
+
+### Configuration
+
+#### Player Options
+
+<ParamField path="autoHandleInterruptions" type="boolean" default="true">
+  Automatically handles audio interruptions (calls, notifications, etc.)
+</ParamField>
+
+<ParamField path="permanent" type="boolean" default="true">
+  Keeps the player service running permanently
+</ParamField>
+
+#### Android Options
+
+<ParamField path="appKilledPlaybackBehavior" type="AppKilledPlaybackBehavior">
+  Set to `StopPlaybackAndRemoveNotification` - stops playback and removes notification when app is killed
+</ParamField>
+
+#### Capabilities
+
+The player supports the following playback controls:
+
+- `Play` - Start/resume playback
+- `Pause` - Pause playback
+- `SkipToNext` - Skip to next track
+- `SkipToPrevious` - Skip to previous track
+- `Stop` - Stop playback
+- `Skip` - Skip to specific track
+
+#### Compact Capabilities
+
+All capabilities are also available in the compact notification view.
+
+#### Progress Updates
+
+<ParamField path="progressUpdateEventInterval" type="number" default="2">
+  Progress update events are fired every 2 seconds
+</ParamField>
+
+### Error Handling
+
+Setup errors are caught and logged to the console. The function will not throw errors.
+
+### Usage Example
+
+```typescript
+import { SetupPlayer } from '@/services/TrackPlayerService/SetupPlayer';
+
+// Initialize player on app startup
+await SetupPlayer();
+```
+
+## PlaybackService
+
+Registers event listeners for remote playback controls (notification, lock screen, headphones).
+
+### Function Signature
+
+```typescript
+PlaybackService(): Promise<void>
+```
+
+### Event Handlers
+
+The service registers listeners for the following remote control events:
+
+#### RemotePlay
+
+Triggered when user presses play from notification or lock screen.
+
+```typescript
+TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
+```
+
+#### RemotePause
+
+Triggered when user presses pause from notification or lock screen.
+
+```typescript
+TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
+```
+
+#### RemoteStop
+
+Triggered when user stops playback from notification.
+
+```typescript
+TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.stop());
+```
+
+#### RemoteNext
+
+Triggered when user skips to next track.
+
+```typescript
+TrackPlayer.addEventListener(Event.RemoteNext, () => TrackPlayer.skipToNext());
+```
+
+#### RemotePrevious
+
+Triggered when user skips to previous track.
+
+```typescript
+TrackPlayer.addEventListener(Event.RemotePrevious, () => TrackPlayer.skipToPrevious());
+```
+
+### Usage Example
+
+```typescript
+import { PlaybackService } from '@/services/TrackPlayerService/TrackPlayerService';
+import TrackPlayer from 'react-native-track-player';
+
+// Register playback service
+TrackPlayer.registerPlaybackService(() => PlaybackService);
+```
+
+## Complete Setup Example
+
+Here's how to set up the track player service in your app:
+
+```typescript
+import TrackPlayer from 'react-native-track-player';
+import { SetupPlayer } from '@/services/TrackPlayerService/SetupPlayer';
+import { PlaybackService } from '@/services/TrackPlayerService/TrackPlayerService';
+
+// In your main app file or root component
+
+// 1. Register the playback service
+TrackPlayer.registerPlaybackService(() => PlaybackService);
+
+// 2. Initialize the player
+const initializePlayer = async () => {
+  await SetupPlayer();
+  console.log('Track player initialized');
+};
+
+initializePlayer();
+```
+
+## Playing Tracks
+
+Once the player is set up, you can add and play tracks:
+
+```typescript
+import TrackPlayer from 'react-native-track-player';
+import { getStreamingData } from '@/services/streaming/StreamingTrack';
+
+// Add a track to the queue
+const trackData = await getStreamingData('videoId');
+await TrackPlayer.add(trackData);
+
+// Start playback
+await TrackPlayer.play();
+```
+
+## Player State Management
+
+### Getting Current State
+
+```typescript
+import TrackPlayer, { State } from 'react-native-track-player';
+
+const state = await TrackPlayer.getState();
+
+if (state === State.Playing) {
+  console.log('Currently playing');
+}
+```
+
+### Getting Current Track
+
+```typescript
+const currentTrack = await TrackPlayer.getActiveTrack();
+console.log('Now playing:', currentTrack?.title);
+```
+
+### Queue Management
+
+```typescript
+// Add multiple tracks
+await TrackPlayer.add([track1, track2, track3]);
+
+// Get queue
+const queue = await TrackPlayer.getQueue();
+
+// Skip to specific track
+await TrackPlayer.skip(2);
+
+// Clear queue
+await TrackPlayer.reset();
+```
+
+## Playback Controls
+
+```typescript
+// Play/Pause
+await TrackPlayer.play();
+await TrackPlayer.pause();
+
+// Skip tracks
+await TrackPlayer.skipToNext();
+await TrackPlayer.skipToPrevious();
+
+// Seek to position (in seconds)
+await TrackPlayer.seekTo(60);
+
+// Stop playback
+await TrackPlayer.stop();
+```
+
+## Event Listeners
+
+You can listen to various playback events:
+
+```typescript
+import { Event } from 'react-native-track-player';
+
+// Track changed
+TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (event) => {
+  console.log('Track changed:', event.track);
+});
+
+// Playback state changed
+TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
+  console.log('State:', event.state);
+});
+
+// Progress update (every 2 seconds)
+TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (event) => {
+  console.log('Position:', event.position);
+  console.log('Duration:', event.duration);
+});
+```
+
+## Platform-Specific Behavior
+
+### Android
+
+- Displays media notification with playback controls
+- Playback stops and notification is removed when app is killed
+- Supports lock screen controls
+
+### iOS
+
+- Integrates with Control Center and lock screen
+- Supports headphone controls
+- Continues playback in background (if configured)
+
+## Notes
+
+<Info>
+  The player is configured to handle audio interruptions automatically, meaning it will pause when a phone call comes in and can resume after.
+</Info>
+
+<Info>
+  Remote seek functionality is currently commented out but can be enabled by uncommenting the RemoteSeek event listener in the source code.
+</Info>
+
+<Warning>
+  Make sure to call `SetupPlayer()` before any other track player operations, ideally during app initialization.
+</Warning>

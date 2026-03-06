@@ -1,0 +1,310 @@
+---
+title: Installation
+description: Complete guide to setting up HiBeat Pro development environment
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+<AccordionGroup>
+  <Accordion title="Node.js 18+" icon="node-js">
+    HiBeat Pro requires Node.js version 18 or higher.
+    
+    **Check your version:**
+    ```bash
+    node --version
+    ```
+    
+    Download from [nodejs.org](https://nodejs.org/) if needed.
+  </Accordion>
+
+  <Accordion title="React Native CLI" icon="react">
+    Install the React Native command line interface globally:
+    
+    ```bash
+    npm install -g react-native-cli
+    ```
+  </Accordion>
+
+  <Accordion title="Android Studio" icon="android">
+    Required for Android development:
+    - Android Studio (latest version)
+    - Android SDK Platform 34
+    - Android SDK Build-Tools 34.0.0
+    - Android Emulator (optional, for testing)
+    
+    **SDK Requirements:**
+    - Min SDK: 24 (Android 7.0)
+    - Target SDK: 34
+    - Compile SDK: 34
+  </Accordion>
+
+  <Accordion title="JDK 17" icon="java">
+    Java Development Kit version 17 is required for building Android apps.
+    
+    Download from [Adoptium](https://adoptium.net/) or use your system's package manager.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+**Platform Note:** HiBeat Pro currently supports Android only. iOS development is not available.
+</Warning>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the HiBeat Pro repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/yourusername/HiBeatII.git
+    cd HiBeatII
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all required npm packages:
+    
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+    
+    ```bash yarn
+    yarn install
+    ```
+    
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+    
+    This will install key dependencies including:
+    - `react-native@0.74.3` - Core framework
+    - `ytmusic-api@5.2.1` - YouTube Music integration
+    - `react-native-track-player@4.1.1` - Audio playback
+    - `ffmpeg-kit-react-native@6.0.2` - Audio processing
+    - `zustand@4.5.4` - State management
+    - `@tanstack/react-query@5.51.11` - Data fetching
+  </Step>
+
+  <Step title="Android Setup">
+    Configure your Android development environment:
+    
+    ### 1. Set Environment Variables
+    
+    Add these to your `~/.bashrc`, `~/.zshrc`, or equivalent:
+    
+    ```bash
+    export ANDROID_HOME=$HOME/Android/Sdk
+    export PATH=$PATH:$ANDROID_HOME/emulator
+    export PATH=$PATH:$ANDROID_HOME/platform-tools
+    ```
+    
+    Reload your shell configuration:
+    ```bash
+    source ~/.bashrc  # or ~/.zshrc
+    ```
+    
+    ### 2. Install Android SDK Components
+    
+    Open Android Studio and install:
+    - Android SDK Platform 34
+    - Android SDK Build-Tools 34.0.0
+    - Android NDK 26.1.10909125 (installed automatically)
+    
+    ### 3. Configure Build Tools
+    
+    The project is pre-configured with these build settings in `android/build.gradle`:
+    
+    ```gradle
+    buildToolsVersion = "34.0.0"
+    minSdkVersion = 24
+    compileSdkVersion = 34
+    targetSdkVersion = 34
+    ndkVersion = "26.1.10909125"
+    kotlinVersion = "1.9.22"
+    ```
+  </Step>
+
+  <Step title="Install Ruby Dependencies (Optional)">
+    For iOS-related tooling (if added in the future):
+    
+    ```bash
+    bundle install
+    ```
+  </Step>
+
+  <Step title="Start Metro Bundler">
+    Start the React Native Metro bundler:
+    
+    <CodeGroup>
+    ```bash npm
+    npm start
+    ```
+    
+    ```bash yarn
+    yarn start
+    ```
+    
+    ```bash react-native
+    npx react-native start
+    ```
+    </CodeGroup>
+    
+    <Note>
+    Keep this terminal window open. Metro must be running for the app to load JavaScript bundles.
+    </Note>
+  </Step>
+
+  <Step title="Build and Run on Android">
+    In a **new terminal window**, run:
+    
+    <CodeGroup>
+    ```bash npm
+    npm run android
+    ```
+    
+    ```bash yarn
+    yarn android
+    ```
+    
+    ```bash react-native
+    npx react-native run-android
+    ```
+    </CodeGroup>
+    
+    This will:
+    1. Build the Android application
+    2. Install it on your connected device/emulator
+    3. Launch the app automatically
+    
+    <Tip>
+    Make sure you have either:
+    - An Android device connected via USB with USB debugging enabled, OR
+    - An Android emulator running from Android Studio
+    </Tip>
+  </Step>
+</Steps>
+
+## Verify Installation
+
+Once the app launches, you should see:
+
+1. **Splash Screen** - Brief loading screen
+2. **Network Check** - Connection status verification
+3. **Home Screen** - With sections for:
+   - Top Artists
+   - Album Releases
+   - Random Playlists
+   - Active track player (bottom)
+
+<Check>
+**Success!** If you see the home screen, HiBeat Pro is installed correctly.
+</Check>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Metro Bundler Connection Failed">
+    **Problem:** App can't connect to Metro bundler.
+    
+    **Solution:**
+    ```bash
+    # Clear Metro cache
+    npx react-native start --reset-cache
+    ```
+  </Accordion>
+
+  <Accordion title="Build Failed - SDK Not Found">
+    **Problem:** Android SDK components not found.
+    
+    **Solution:**
+    1. Verify `ANDROID_HOME` environment variable
+    2. Open Android Studio → SDK Manager
+    3. Install required SDK Platform 34 and Build-Tools 34.0.0
+  </Accordion>
+
+  <Accordion title="No Devices Detected">
+    **Problem:** `adb devices` shows no devices.
+    
+    **Solution:**
+    - For physical device: Enable USB debugging in Developer Options
+    - For emulator: Launch an AVD from Android Studio first
+    ```bash
+    # List available emulators
+    emulator -list-avds
+    
+    # Start an emulator
+    emulator -avd <avd_name>
+    ```
+  </Accordion>
+
+  <Accordion title="Native Module Linking Issues">
+    **Problem:** Native modules not found after installation.
+    
+    **Solution:**
+    ```bash
+    # Clean build and reinstall
+    cd android
+    ./gradlew clean
+    cd ..
+    npm run android
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Development Environment
+
+### Recommended Tools
+
+- **VS Code** - With React Native Tools extension
+- **Android Studio** - For device management and debugging
+- **Flipper** - For React Native debugging (optional)
+- **Reactotron** - For state management debugging (optional)
+
+### Project Scripts
+
+From `package.json`:
+
+```json
+"scripts": {
+  "android": "react-native run-android",
+  "ios": "react-native run-ios",
+  "start": "react-native start",
+  "test": "jest",
+  "lint": "eslint ."
+}
+```
+
+<CodeGroup>
+```bash Start Metro
+npm start
+```
+
+```bash Run Android
+npm run android
+```
+
+```bash Run Tests
+npm test
+```
+
+```bash Lint Code
+npm run lint
+```
+</CodeGroup>
+
+## Next Steps
+
+Now that HiBeat Pro is installed:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Learn how to use HiBeat Pro's key features
+  </Card>
+  <Card title="Project Structure" icon="diagram-project" href="/development/project-structure">
+    Understand the app's structure and components
+  </Card>
+</CardGroup>

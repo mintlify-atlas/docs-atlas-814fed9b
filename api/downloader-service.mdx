@@ -1,0 +1,211 @@
+---
+title: 'Downloader Service'
+description: 'Download and save music tracks with metadata to device storage'
+---
+
+## Overview
+
+The Downloader Service handles downloading audio tracks to device storage with embedded metadata and cover art. It uses RNFetchBlob for downloads and FFmpeg for metadata injection.
+
+## TrackDownloader
+
+Main function to download a track with metadata to the device.
+
+### Function Signature
+
+```typescript
+TrackDownloader(
+  format: string,
+  trackInfo: SongDetailed | Song,
+  trckImg: string
+): void
+```
+
+### Parameters
+
+<ParamField path="format" type="string" required>
+  The URL of the audio file to download
+</ParamField>
+
+<ParamField path="trackInfo" type="SongDetailed | Song" required>
+  Track metadata object containing:
+  - `name`: Track title
+  - `artist.name`: Artist name
+  - `album.name`: Album name (optional)
+</ParamField>
+
+<ParamField path="trckImg" type="string" required>
+  URL of the track's cover art image
+</ParamField>
+
+### Platform Support
+
+<Warning>
+  This function only works on Android. iOS downloads are not currently supported.
+</Warning>
+
+## Download Flow
+
+The download process follows these steps:
+
+### 1. File Path Preparation
+
+- Sanitizes track and artist names (removes special characters)
+- Creates file path: `{DownloadDir}/{safeName}_{safeArtist}.m4a`
+- Verifies/creates download directory
+
+### 2. Cover Art Download
+
+- Downloads cover image to temporary path
+- Saves as `cover.jpg` in download directory
+
+### 3. Audio Download
+
+- Uses Android Download Manager for progress tracking
+- Downloads audio file to destination path
+- Shows progress in console (percentage)
+
+### 4. Metadata Injection
+
+Uses FFmpeg to embed metadata and cover art:
+
+```bash
+ffmpeg -y -i "{audioFile}" -i "{coverImage}" \
+  -metadata Title="{trackName}" \
+  -metadata Artist="{artistName}" \
+  -metadata Album="{albumName}" \
+  -map 0 -map 1 -c copy \
+  -disposition:v:0 attached_pic "{outputFile}"
+```
+
+### 5. File Finalization
+
+- Replaces original file with metadata-enriched version
+- Cleans up temporary files
+- Shows success/error toast notification
+
+## File Storage
+
+### Download Directory
+
+```typescript
+const directoryPath = `${fs.dirs.DownloadDir}`;
+```
+
+Files are saved to the device's standard Downloads directory.
+
+### File Naming Convention
+
+```
+{TrackName}_{ArtistName}.m4a
+```
+
+Example: `Never_Gonna_Give_You_Up_Rick_Astley.m4a`
+
+## Toast Notifications
+
+### Success
+
+```typescript
+{
+  type: 'success',
+  text1: 'Download complete',
+  text2: 'Your track has been successfully downloaded ✅'
+}
+```
+
+### Error
+
+```typescript
+{
+  type: 'error',
+  text1: 'Download failed',
+  text2: 'There was an error downloading the track ⚠️'
+}
+```
+
+## Usage Example
+
+```typescript
+import { TrackDownloader } from '@/services/downloader/Downloader';
+import { getDownloadPermissionAndroid } from '@/services/downloader/PermissionAndroid';
+
+// Request permission first
+const hasPermission = await getDownloadPermissionAndroid();
+
+if (hasPermission) {
+  // Download track
+  TrackDownloader(
+    'https://audio-url.com/track.m4a',
+    {
+      name: 'Never Gonna Give You Up',
+      artist: { name: 'Rick Astley' },
+      album: { name: 'Whenever You Need Somebody' }
+    },
+    'https://cover-art-url.com/image.jpg'
+  );
+}
+```
+
+## Android Permissions
+
+### getDownloadPermissionAndroid
+
+Requests storage permission on Android devices.
+
+```typescript
+getDownloadPermissionAndroid(): Promise<boolean | undefined>
+```
+
+#### Returns
+
+- `true` if permission granted
+- `undefined` if permission denied or error occurred
+
+#### Permission Details
+
+- **Permission**: `WRITE_EXTERNAL_STORAGE`
+- **Title**: "File Download Permission"
+- **Message**: "Your permission is required to save Files to your device"
+
+## Download Configuration
+
+```typescript
+{
+  addAndroidDownloads: {
+    useDownloadManager: true,
+    mime: 'audio/aac',
+    notification: true,
+    path: destinationFilePath,
+    description: 'Download file...',
+    mediaScannable: true,
+    fileCache: true
+  }
+}
+```
+
+## Error Handling
+
+Errors are handled at multiple levels:
+
+1. **Download errors**: Caught in try-catch, show error toast
+2. **FFmpeg errors**: Checked via return code, show error toast
+3. **Permission errors**: Logged to console
+
+All errors are logged with `console.error()` for debugging.
+
+## Dependencies
+
+- **FFmpegKit**: Metadata injection and cover art embedding
+- **RNFetchBlob**: File download and storage management
+- **react-native-toast-message**: User notifications
+
+## Notes
+
+<Info>
+  The service automatically makes downloaded files scannable by the Android media scanner, making them appear in music apps.
+</Info>
+
+<Warning>
+  Special characters in track and artist names are replaced with underscores to ensure valid file names.
+</Warning>

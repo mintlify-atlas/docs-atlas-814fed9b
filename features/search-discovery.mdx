@@ -1,0 +1,328 @@
+---
+title: 'Search & Discovery'
+description: 'Find millions of tracks, artists, albums, and playlists using YouTube Music search'
+icon: 'magnifying-glass'
+---
+
+## Overview
+
+HiBeat Pro's search functionality leverages the **ytmusic-api** library to provide comprehensive music discovery. Users can search for tracks, artists, albums, and playlists from YouTube Music's vast catalog.
+
+## Search Architecture
+
+The search system uses a unified interface that queries three types of content simultaneously:
+
+<CardGroup cols={3}>
+  <Card title="Tracks" icon="music">
+    Individual songs and singles
+  </Card>
+  <Card title="Artists" icon="user">
+    Musicians and bands
+  </Card>
+  <Card title="Albums" icon="record-vinyl">
+    Full albums and EPs
+  </Card>
+</CardGroup>
+
+## Implementation
+
+### Search Service
+
+The search functionality is implemented using the **ytmusic-api** library:
+
+```typescript
+import YTMusic from 'ytmusic-api';
+
+const ytmusic = new YTMusic();
+
+export const serachTracksFuntion = async (track: string): Promise<SongDetailed[]> => {
+  try {
+    await ytmusic.initialize();
+    const searchInfo = await ytmusic.searchSongs(track);
+    return searchInfo;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+export const serachArtistFuntion = async (artist: string): Promise<ArtistDetailed[]> => {
+  try {
+    await ytmusic.initialize();
+    const artistInfo = await ytmusic.searchArtists(artist);
+    return artistInfo;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+```
+
+**Source:** `src/hooks/UseSearch/UseSearchTracks.ts`
+
+<Note>
+The ytmusic-api library requires initialization before each search query.
+</Note>
+
+### Album Search
+
+Album search uses a custom implementation with YouTube Music's Web Remix API:
+
+```typescript
+export const searchAlbumsByAxios = async (somethingQuery: string): Promise<AlbumSearch[]> => {
+  const URL = `https://music.youtube.com/youtubei/v1/search?prettyPrint=false`;
+  
+  const body = {
+    context: {
+      client: {
+        clientName: 'WEB_REMIX',
+        clientVersion: '0.1',
+      },
+    },
+    params: 'EgWKAQIYAWoSEAMQBBAOEAoQCRAVEAUQERAQ',
+    query: somethingQuery,
+    formData: {
+      selectedValues: ['GB'],
+    },
+  };
+  
+  const response = await axios.post(URL, body, {
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  // Parse and format album data
+  return formatAlbumResults(response.data);
+};
+```
+
+**Source:** `src/hooks/UseAlbumSearch/UseAlbumSearch.ts`
+
+## Search UI
+
+The search interface consists of a unified search form with tabbed results:
+
+### Search Form Component
+
+```typescript
+export const SearchForm: React.FC = () => {
+  const {control, handleSubmit} = useForm<FormData>();
+  const {setTrackList, setArtistList, setAlbumsList} = useSearchStore();
+  
+  const onSubmit = async (data: FormData) => {
+    const [tracksInfo, artistInfo, albumSearch] = await Promise.all([
+      serachTracksFuntion(data.search),
+      serachArtistFuntion(data.search),
+      searchAlbumsByAxios(data.search),
+    ]);
+    
+    setTrackList(tracksInfo);
+    setArtistList(artistInfo);
+    setAlbumsList(albumSearch);
+  };
+  
+  return (
+    <TextInput
+      returnKeyType="search"
+      placeholder="Search something"
+      onSubmitEditing={handleSubmit(onSubmit)}
+    />
+  );
+};
+```
+
+**Source:** `src/components/SearchComponents/components/SearchForm.tsx`
+
+<Info>
+The search form uses **Promise.all** to execute all three search queries in parallel for optimal performance.
+</Info>
+
+## Search Types
+
+<Tabs>
+  <Tab title="Track Search">
+    ### Track Search Results
+    
+    Returns detailed song information:
+    
+    ```typescript
+    interface SongDetailed {
+      videoId: string;
+      name: string;
+      artist: {
+        name: string;
+        artistId: string;
+      };
+      album: {
+        name: string;
+        albumId: string;
+      };
+      duration: number;
+      thumbnails: Thumbnail[];
+    }
+    ```
+    
+    **Component:** `src/components/SearchComponents/components/TrackListSearch.tsx`
+  </Tab>
+  
+  <Tab title="Artist Search">
+    ### Artist Search Results
+    
+    Returns artist profiles:
+    
+    ```typescript
+    interface ArtistDetailed {
+      artistId: string;
+      name: string;
+      thumbnails: Thumbnail[];
+      subscribers?: string;
+    }
+    ```
+    
+    **Component:** `src/components/SearchComponents/components/ArtistListSearch.tsx`
+  </Tab>
+  
+  <Tab title="Album Search">
+    ### Album Search Results
+    
+    Returns album information:
+    
+    ```typescript
+    interface AlbumSearch {
+      playlistId: string;
+      name: string;
+      artist: {
+        artistId: string;
+        name: string;
+      };
+      year: string;
+      type: string;
+      thumbnails: Thumbnail[];
+    }
+    ```
+    
+    **Component:** `src/components/SearchComponents/components/AlbumsListSearch.tsx`
+  </Tab>
+</Tabs>
+
+## State Management
+
+Search results are managed using Zustand store:
+
+```typescript
+const {setTrackList, setArtistList, setAlbumsList} = useSearchStore();
+
+// Store search results
+setTrackList(tracksInfo);
+setArtistList(artistInfo);
+setAlbumsList(albumSearch);
+```
+
+<Accordion title="Search Store Structure">
+The search store maintains three separate arrays:
+- **trackList:** Array of track search results
+- **artistList:** Array of artist search results
+- **albumsList:** Array of album search results
+</Accordion>
+
+## Navigation
+
+Search results are displayed using a top tab navigator:
+
+```typescript
+export const Search = () => {
+  return (
+    <View>
+      <SearchForm />
+      <TopTabNavigator />
+      <ActiveTrackCrad />
+    </View>
+  );
+};
+```
+
+**Source:** `src/screens/search/Search.tsx`
+
+The navigator includes three tabs:
+1. **Tracks** - Song search results
+2. **Artists** - Artist profiles
+3. **Albums** - Album listings
+
+## Search Features
+
+<Steps>
+  <Step title="Real-time Search">
+    Results update as you type (on submit)
+  </Step>
+  <Step title="Multi-category Results">
+    Simultaneously search tracks, artists, and albums
+  </Step>
+  <Step title="Tabbed Navigation">
+    Easy switching between result categories
+  </Step>
+  <Step title="Rich Metadata">
+    Full track info including artwork, duration, and artist details
+  </Step>
+</Steps>
+
+## Search Query Optimization
+
+<Accordion title="Parallel Queries">
+All search types execute simultaneously using `Promise.all`, reducing total search time by up to 66%:
+
+```typescript
+const [tracks, artists, albums] = await Promise.all([
+  serachTracksFuntion(query),
+  serachArtistFuntion(query),
+  searchAlbumsByAxios(query),
+]);
+```
+</Accordion>
+
+## Error Handling
+
+The search system includes graceful error handling:
+
+```typescript
+try {
+  const [tracksInfo, artistInfo, albumSearch] = await Promise.all([...]);
+  // Update state with results
+} catch (error) {
+  console.error('Error fetching data:', error);
+  // Return null or empty array
+}
+```
+
+<Warning>
+If a search query fails, the app returns null or an empty array to prevent crashes while allowing other search types to complete successfully.
+</Warning>
+
+## Integration with React Query
+
+Search results can also be cached using React Query:
+
+```typescript
+export const useSearcTracksResult = (track: string): UseQueryResult<SongDetailed[], Error> => {
+  return useQuery({
+    queryKey: ['useSearchTracksKey', serachTracksFuntion],
+    queryFn: () => serachTracksFuntion(track),
+  });
+};
+```
+
+<Info>
+React Query integration enables automatic caching and refetching of search results.
+</Info>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Music Streaming" icon="play" href="/features/music-streaming">
+    Play search results instantly
+  </Card>
+  <Card title="Music Downloads" icon="download" href="/features/music-downloads">
+    Download tracks from search results
+  </Card>
+</CardGroup>

@@ -1,0 +1,267 @@
+---
+title: useTopArtistGlobal
+description: React Query hook for fetching top global artists from YouTube Music charts
+---
+
+## Overview
+
+The `useTopArtistGlobal` hook fetches the current top artists from YouTube Music's global charts. It provides access to trending artists without requiring any parameters.
+
+## Import
+
+```typescript
+import { useTopArtistGlobal } from 'hooks/UseTopArtist/UseTopArtist';
+```
+
+## Function Signature
+
+```typescript
+function useTopArtistGlobal(): UseQueryResult<TopArtistInterface[], Error>
+```
+
+## Parameters
+
+This hook takes no parameters.
+
+## Return Value
+
+<ResponseField name="data" type="TopArtistInterface[]">
+  Array of top artist objects
+  
+  <Expandable title="TopArtistInterface properties">
+    <ResponseField name="idArtist" type="string">
+      Unique artist identifier (browse ID) for accessing artist details
+    </ResponseField>
+    
+    <ResponseField name="nameArtist" type="string">
+      Artist name
+    </ResponseField>
+    
+    <ResponseField name="imgCover" type="ImgCover[]">
+      Array of artist thumbnail images in different sizes
+      <Expandable title="ImgCover properties">
+        <ResponseField name="url" type="string">
+          Image URL
+        </ResponseField>
+        <ResponseField name="width" type="number">
+          Image width in pixels
+        </ResponseField>
+        <ResponseField name="height" type="number">
+          Image height in pixels
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Whether the query is currently loading
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  Whether the query encountered an error
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the query failed
+</ResponseField>
+
+<ResponseField name="refetch" type="function">
+  Function to manually refetch the top artists
+</ResponseField>
+
+## Usage Example
+
+```typescript
+import { useTopArtistGlobal } from 'hooks/UseTopArtist/UseTopArtist';
+
+function TopArtistsScreen() {
+  const { data, isLoading, isError } = useTopArtistGlobal();
+
+  if (isLoading) return <Text>Loading top artists...</Text>;
+  if (isError) return <Text>Error loading artists</Text>;
+
+  return (
+    <FlatList
+      data={data}
+      keyExtractor={(item) => item.idArtist}
+      renderItem={({ item, index }) => (
+        <View>
+          <Text>#{index + 1}</Text>
+          <Image source={{ uri: item.imgCover[0]?.url }} />
+          <Text>{item.nameArtist}</Text>
+        </View>
+      )}
+    />
+  );
+}
+```
+
+## Advanced Example
+
+Navigating to artist detail page:
+
+```typescript
+import { useTopArtistGlobal } from 'hooks/UseTopArtist/UseTopArtist';
+import { useNavigation } from '@react-navigation/native';
+
+function TopArtistsGrid() {
+  const navigation = useNavigation();
+  const { data, isLoading, refetch, isRefetching } = useTopArtistGlobal();
+
+  const handleArtistPress = (artist) => {
+    navigation.navigate('ArtistDetail', {
+      artistId: artist.idArtist,
+      artistName: artist.nameArtist
+    });
+  };
+
+  if (isLoading) return <ActivityIndicator />;
+
+  return (
+    <View>
+      <View style={styles.header}>
+        <Text style={styles.title}>Top Artists</Text>
+        <TouchableOpacity onPress={() => refetch()}>
+          <Icon name="refresh" />
+        </TouchableOpacity>
+      </View>
+      
+      <ScrollView>
+        {data?.map((artist, index) => (
+          <TouchableOpacity
+            key={artist.idArtist}
+            onPress={() => handleArtistPress(artist)}
+            style={styles.artistCard}
+          >
+            <Text style={styles.rank}>#{index + 1}</Text>
+            <Image
+              source={{ uri: artist.imgCover[0]?.url }}
+              style={styles.artistImage}
+            />
+            <Text style={styles.artistName}>{artist.nameArtist}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+```
+
+## Selecting Different Thumbnail Sizes
+
+```typescript
+function ArtistThumbnail({ artist }) {
+  // Access different thumbnail sizes
+  const smallThumb = artist.imgCover[0]; // Smallest size
+  const mediumThumb = artist.imgCover[1]; // Medium size
+  const largeThumb = artist.imgCover[2]; // Largest size
+
+  return (
+    <View>
+      {/* Use large thumbnail for detail views */}
+      <Image
+        source={{ uri: largeThumb?.url }}
+        style={{ width: largeThumb?.width, height: largeThumb?.height }}
+      />
+      <Text>{artist.nameArtist}</Text>
+    </View>
+  );
+}
+```
+
+## React Query Configuration
+
+**Query Key:** `['topArtist']`
+
+- The query uses a static key since it fetches the same global chart data
+- Results are automatically cached by React Query
+- Data represents the current state of YouTube Music's global charts
+
+## Data Source
+
+This hook fetches data from:
+- **Browse ID:** `FEmusic_charts`
+- **Region:** GB (Great Britain)
+- **Client:** Web Remix (v0.1)
+- **Chart Type:** Top Artists
+
+## Error Handling
+
+```typescript
+function TopArtistsWithErrorHandling() {
+  const { data, isLoading, isError, error } = useTopArtistGlobal();
+
+  if (isLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#1DB954" />
+        <Text>Loading top artists...</Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorTitle}>Failed to load top artists</Text>
+        <Text style={styles.errorMessage}>{error?.message}</Text>
+        <Button title="Try Again" onPress={() => refetch()} />
+      </View>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <View style={styles.center}>
+        <Text>No artists available</Text>
+      </View>
+    );
+  }
+
+  return <ArtistList artists={data} />;
+}
+```
+
+## Notes
+
+- Returns artists currently trending on YouTube Music's global charts
+- Each artist includes multiple thumbnail sizes for different UI needs
+- The `idArtist` (browse ID) can be used to fetch detailed artist information
+- Returns `null` if the API request fails or if the chart structure is unavailable
+- Chart data updates periodically based on YouTube Music's refresh schedule
+
+## Related Hooks
+
+- [useSearchResult](/api/hooks/use-search) - Search for specific artists
+- Search artists specifically using the `serachArtistFuntion` from UseSearchTracks
+
+## Performance Tips
+
+```typescript
+import { useTopArtistGlobal } from 'hooks/UseTopArtist/UseTopArtist';
+import { useMemo } from 'react';
+
+function OptimizedTopArtists() {
+  const { data, isLoading } = useTopArtistGlobal();
+
+  // Memoize top 10 artists to avoid re-renders
+  const topTen = useMemo(() => {
+    return data?.slice(0, 10) || [];
+  }, [data]);
+
+  if (isLoading) return <ActivityIndicator />;
+
+  return (
+    <FlatList
+      data={topTen}
+      keyExtractor={(item) => item.idArtist}
+      renderItem={({ item }) => <ArtistCard artist={item} />}
+      // Optimize list rendering
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+      initialNumToRender={10}
+    />
+  );
+}
+```

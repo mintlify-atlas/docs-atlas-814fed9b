@@ -1,0 +1,125 @@
+---
+title: "Track Store"
+description: "State management for track stack using Zustand"
+---
+
+The `trackStackStore` manages the track queue/stack for the music player, storing the current list of tracks to be played.
+
+## Import
+
+```typescript
+import { useTrackStackStore } from 'store/trackStackStore/GetTrackStore';
+```
+
+## State
+
+<ParamField path="trackOnStack" type="Track[] | null">
+  Array of tracks in the current playback queue. Uses the `Track` type from `react-native-track-player`. Contains track objects or `null` if the queue is empty.
+</ParamField>
+
+## Actions
+
+<ParamField path="setTrackOnStack" type="(trackItem: Track[]) => void">
+  Sets the track queue/stack for playback.
+  
+  **Parameters:**
+  - `trackItem` - Array of `Track` objects to set as the current queue
+</ParamField>
+
+## Usage Example
+
+```typescript
+import { useTrackStackStore } from 'store/trackStackStore/GetTrackStore';
+import TrackPlayer, { Track } from 'react-native-track-player';
+
+function PlayerScreen() {
+  const { trackOnStack, setTrackOnStack } = useTrackStackStore();
+
+  const handlePlayAlbum = async (tracks: Track[]) => {
+    // Set the tracks in the store
+    setTrackOnStack(tracks);
+    
+    // Add to track player
+    await TrackPlayer.reset();
+    await TrackPlayer.add(tracks);
+    await TrackPlayer.play();
+  };
+
+  return (
+    <View>
+      <Text>Queue Length: {trackOnStack?.length || 0}</Text>
+      {trackOnStack && (
+        <FlatList
+          data={trackOnStack}
+          renderItem={({ item }) => (
+            <Text>{item.title}</Text>
+          )}
+        />
+      )}
+    </View>
+  );
+}
+```
+
+## Accessing State
+
+You can access individual state values and actions:
+
+```typescript
+// Access only what you need
+const trackOnStack = useTrackStackStore(state => state.trackOnStack);
+const setTrackOnStack = useTrackStackStore(state => state.setTrackOnStack);
+
+// Or destructure multiple values
+const { trackOnStack, setTrackOnStack } = useTrackStackStore();
+```
+
+## Managing the Track Queue
+
+```typescript
+import { useTrackStackStore } from 'store/trackStackStore/GetTrackStore';
+import { Track } from 'react-native-track-player';
+
+// Add tracks to queue
+function addToQueue(newTracks: Track[]) {
+  const { trackOnStack, setTrackOnStack } = useTrackStackStore.getState();
+  
+  const updatedQueue = trackOnStack 
+    ? [...trackOnStack, ...newTracks]
+    : newTracks;
+  
+  setTrackOnStack(updatedQueue);
+}
+
+// Clear the queue
+function clearQueue() {
+  const { setTrackOnStack } = useTrackStackStore.getState();
+  setTrackOnStack([]);
+}
+
+// Remove a track from queue
+function removeFromQueue(trackIndex: number) {
+  const { trackOnStack, setTrackOnStack } = useTrackStackStore.getState();
+  
+  if (trackOnStack) {
+    const updatedQueue = trackOnStack.filter((_, index) => index !== trackIndex);
+    setTrackOnStack(updatedQueue);
+  }
+}
+```
+
+## Integration with React Native Track Player
+
+```typescript
+import TrackPlayer from 'react-native-track-player';
+import { useTrackStackStore } from 'store/trackStackStore/GetTrackStore';
+
+async function syncTrackPlayerWithStore() {
+  const { trackOnStack } = useTrackStackStore.getState();
+  
+  if (trackOnStack && trackOnStack.length > 0) {
+    await TrackPlayer.reset();
+    await TrackPlayer.add(trackOnStack);
+  }
+}
+```

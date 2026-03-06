@@ -1,0 +1,187 @@
+---
+title: useRandomPlaylist
+description: React Query hook for fetching curated playlists from YouTube Music
+---
+
+## Overview
+
+The `useRandomPlaylist` hook fetches curated playlists from YouTube Music's moods and genres category. It provides access to various themed playlists without requiring any parameters.
+
+## Import
+
+```typescript
+import { useRandomPlaylist } from 'hooks/UsePlaylist/UsePlaylist';
+```
+
+## Function Signature
+
+```typescript
+function useRandomPlaylist(): UseQueryResult<RandomPlaylistInterface[], Error>
+```
+
+## Parameters
+
+This hook takes no parameters.
+
+## Return Value
+
+<ResponseField name="data" type="RandomPlaylistInterface[]">
+  Array of curated playlist objects
+  
+  <Expandable title="RandomPlaylistInterface properties">
+    <ResponseField name="artwork" type="string">
+      URL of the playlist cover artwork/thumbnail
+    </ResponseField>
+    
+    <ResponseField name="browseId" type="string">
+      Unique browse identifier for accessing the playlist details
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Playlist title/name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Whether the query is currently loading
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  Whether the query encountered an error
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the query failed
+</ResponseField>
+
+<ResponseField name="refetch" type="function">
+  Function to manually refetch the playlists
+</ResponseField>
+
+## Usage Example
+
+```typescript
+import { useRandomPlaylist } from 'hooks/UsePlaylist/UsePlaylist';
+
+function PlaylistBrowser() {
+  const { data, isLoading, isError, refetch } = useRandomPlaylist();
+
+  if (isLoading) return <Text>Loading playlists...</Text>;
+  if (isError) return <Text>Error loading playlists</Text>;
+
+  return (
+    <View>
+      <Button title="Refresh" onPress={() => refetch()} />
+      <FlatList
+        data={data}
+        keyExtractor={(item) => item.browseId}
+        renderItem={({ item }) => (
+          <View>
+            <Image source={{ uri: item.artwork }} />
+            <Text>{item.title}</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+```
+
+## Advanced Example
+
+Navigating to a playlist detail view:
+
+```typescript
+import { useRandomPlaylist } from 'hooks/UsePlaylist/UsePlaylist';
+import { useNavigation } from '@react-navigation/native';
+
+function PlaylistGrid() {
+  const navigation = useNavigation();
+  const { data, isLoading } = useRandomPlaylist();
+
+  const handlePlaylistPress = (playlist) => {
+    navigation.navigate('PlaylistDetail', {
+      browseId: playlist.browseId,
+      title: playlist.title,
+      artwork: playlist.artwork
+    });
+  };
+
+  if (isLoading) return <ActivityIndicator />;
+
+  return (
+    <ScrollView>
+      <View style={styles.grid}>
+        {data?.map((playlist) => (
+          <TouchableOpacity
+            key={playlist.browseId}
+            onPress={() => handlePlaylistPress(playlist)}
+          >
+            <Image
+              source={{ uri: playlist.artwork }}
+              style={styles.thumbnail}
+            />
+            <Text numberOfLines={2}>{playlist.title}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+}
+```
+
+## React Query Configuration
+
+**Query Key:** `['randomPlaylist']`
+
+- The query uses a static key since it fetches the same curated playlists
+- Results are automatically cached by React Query
+- No automatic refetching on window focus by default
+
+## Data Source
+
+This hook fetches playlists from:
+- **Browse ID:** `FEmusic_moods_and_genres_category`
+- **Category:** Moods and Genres
+- **Region:** GB (Great Britain)
+- **Client:** iOS Music (v5.26.1)
+
+## Notes
+
+- The hook returns playlists from YouTube Music's curated collections
+- Playlist data includes high-quality artwork thumbnails (third thumbnail in array)
+- The `browseId` can be used with other hooks (like `UseIdPlayList`) to fetch detailed playlist information
+- Returns `null` if the API request fails
+
+## Related Hooks
+
+- [UseIdPlayList](/api/hooks/use-album#useidplaylist) - Fetch detailed album/playlist information
+- [useStreamingAlbum](/api/hooks/use-album#usestreamingalbum) - Stream tracks from a playlist
+
+## Error Handling
+
+```typescript
+function PlaylistBrowserWithError() {
+  const { data, isLoading, isError, error } = useRandomPlaylist();
+
+  if (isLoading) {
+    return <ActivityIndicator size="large" />;
+  }
+
+  if (isError) {
+    return (
+      <View>
+        <Text>Failed to load playlists</Text>
+        <Text>{error?.message}</Text>
+      </View>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return <Text>No playlists available</Text>;
+  }
+
+  return <PlaylistList playlists={data} />;
+}
+```

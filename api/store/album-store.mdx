@@ -1,0 +1,94 @@
+---
+title: "Album Store"
+description: "State management for album data using Zustand"
+---
+
+The `albumStore` manages album-related state throughout the application, including the currently selected album, album ID, and album list data.
+
+## Import
+
+```typescript
+import { useAlbumStore } from 'store/albumStore/albumStore';
+```
+
+## State
+
+<ParamField path="albumId" type="string">
+  The ID of the currently selected album. Initialized as an empty string.
+</ParamField>
+
+<ParamField path="albumInfoSelected" type="AlbumSearch | AlbumSummary | null">
+  The detailed information of the currently selected album. Can be either an `AlbumSearch` or `AlbumSummary` object, or `null` if no album is selected.
+</ParamField>
+
+<ParamField path="albumListStore" type="AlbumRelaseInterface | null">
+  Stores the album release list data. Contains information about album releases or `null` if not loaded.
+</ParamField>
+
+## Actions
+
+<ParamField path="setAlbumId" type="(albumId: string) => void">
+  Sets the current album ID.
+  
+  **Parameters:**
+  - `albumId` - The album ID to set
+</ParamField>
+
+<ParamField path="setAlbumsInfoSelected" type="(album: AlbumSearch | AlbumSummary) => void">
+  Sets the currently selected album information.
+  
+  **Parameters:**
+  - `album` - The album object to set (either `AlbumSearch` or `AlbumSummary` type)
+</ParamField>
+
+<ParamField path="setAlbumListStore" type="(album: AlbumRelaseInterface) => void">
+  Sets the album release list data.
+  
+  **Parameters:**
+  - `album` - The album release interface object containing album list data
+</ParamField>
+
+## Usage Example
+
+```typescript
+import { useAlbumStore } from 'store/albumStore/albumStore';
+
+function AlbumScreen() {
+  const { 
+    albumId, 
+    albumInfoSelected, 
+    setAlbumId, 
+    setAlbumsInfoSelected 
+  } = useAlbumStore();
+
+  const handleSelectAlbum = (album: AlbumSearch) => {
+    // Set the album ID
+    setAlbumId(album.browseId);
+    
+    // Set the selected album info
+    setAlbumsInfoSelected(album);
+  };
+
+  return (
+    <View>
+      <Text>Current Album: {albumId}</Text>
+      {albumInfoSelected && (
+        <Text>{albumInfoSelected.title}</Text>
+      )}
+    </View>
+  );
+}
+```
+
+## Accessing State
+
+You can access individual state values and actions:
+
+```typescript
+// Access only what you need
+const albumId = useAlbumStore(state => state.albumId);
+const setAlbumId = useAlbumStore(state => state.setAlbumId);
+
+// Or destructure multiple values
+const { albumInfoSelected, setAlbumsInfoSelected } = useAlbumStore();
+```

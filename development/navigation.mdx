@@ -1,0 +1,507 @@
+---
+title: "Navigation"
+description: "React Navigation setup and screen routing in HiBeat Pro"
+icon: "route"
+---
+
+## Overview
+
+HiBeat Pro uses [React Navigation](https://reactnavigation.org/) v6 with a Stack Navigator for screen transitions. The navigation is configured in `src/navigation/Navigation.tsx`.
+
+## Navigation Setup
+
+### Main Navigation Component
+
+```typescript src/navigation/Navigation.tsx
+import React from 'react';
+import {NavigationContainer} from '@react-navigation/native';
+import {
+  CardStyleInterpolators,
+  TransitionSpecs,
+  createStackNavigator,
+} from '@react-navigation/stack';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {AlbumRealce} from 'screens/AlbumRealce/AlbumRealce';
+import {Album} from 'screens/album/Album';
+import {AlbumsList} from 'screens/albumsList/AlbumsList';
+import {Artist} from 'screens/artist/Artist';
+import {Home} from 'screens/home/Home';
+import {Player} from 'screens/player/Player';
+import {Playlist} from 'screens/playlist/Playlist';
+import {RandomPlayListStack} from 'screens/randomPlaylist/RandomPlaylistStack';
+import {Search} from 'screens/search/Search';
+import {StackPlayer} from 'screens/stack/StackPlayer';
+import {RootStackParamList} from 'scrrenTypes/screenStack';
+import {SheetModal} from 'components/BottomSheetModal/SheetModal';
+
+const Stack = createStackNavigator<RootStackParamList>();
+
+const Navigation = () => {
+  return (
+    <GestureHandlerRootView style={{flex: 1}}>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            animationEnabled: true,
+            transitionSpec: {
+              open: TransitionSpecs.TransitionIOSSpec,
+              close: TransitionSpecs.TransitionIOSSpec,
+            },
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+          }}>
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Album" component={Album} />
+          <Stack.Screen name="Search" component={Search} />
+          <Stack.Screen name="RandomPlaylist" component={RandomPlayListStack} />
+          <Stack.Screen name="ArtistScren" component={Artist} />
+          <Stack.Screen
+            name="Player"
+            component={Player}
+            options={{
+              gestureEnabled: true,
+              gestureDirection: 'vertical',
+              cardStyleInterpolator: ({current, layouts}) => ({
+                cardStyle: {
+                  transform: [
+                    {
+                      translateY: current.progress.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [layouts.screen.height, 0],
+                      }),
+                    },
+                  ],
+                },
+              }),
+            }}
+          />
+          <Stack.Screen
+            name="StackPlayer"
+            options={{
+              cardStyleInterpolator:
+                CardStyleInterpolators.forRevealFromBottomAndroid,
+            }}
+            component={StackPlayer}
+          />
+          <Stack.Screen name="Playlist" component={Playlist} />
+          <Stack.Screen name="AlbumsList" component={AlbumsList} />
+          <Stack.Screen name="AlbumRealce" component={AlbumRealce} />
+        </Stack.Navigator>
+        <SheetModal />
+      </NavigationContainer>
+    </GestureHandlerRootView>
+  );
+};
+
+export default Navigation;
+```
+
+## Screen Structure
+
+<Tabs>
+  <Tab title="Stack Screens">
+    All screens are registered in the Stack Navigator:
+
+    | Screen Name | Component | Purpose |
+    |-------------|-----------|----------|
+    | `Home` | `Home` | Main landing screen |
+    | `Album` | `Album` | Album details view |
+    | `Search` | `Search` | Search functionality |
+    | `RandomPlaylist` | `RandomPlayListStack` | Random playlist view |
+    | `ArtistScren` | `Artist` | Artist profile |
+    | `Player` | `Player` | Full-screen music player |
+    | `StackPlayer` | `StackPlayer` | Track queue view |
+    | `Playlist` | `Playlist` | Playlist details |
+    | `AlbumsList` | `AlbumsList` | List of albums |
+    | `AlbumRealce` | `AlbumRealce` | Album releases |
+  </Tab>
+
+  <Tab title="Screen Locations">
+    Screen components are organized in `src/screens/`:
+
+    ```
+    screens/
+    ├── home/              # Home.tsx
+    ├── album/             # Album.tsx
+    ├── search/            # Search.tsx
+    ├── randomPlaylist/    # RandomPlaylistStack.tsx
+    ├── artist/            # Artist.tsx
+    ├── player/            # Player.tsx
+    ├── stack/             # StackPlayer.tsx
+    ├── playlist/          # Playlist.tsx
+    ├── albumsList/        # AlbumsList.tsx
+    └── AlbumRealce/       # AlbumRealce.tsx
+    ```
+  </Tab>
+</Tabs>
+
+## Navigation Transitions
+
+### Default Transition
+
+All screens use iOS-style horizontal slide transitions:
+
+```typescript
+screenOptions={{
+  headerShown: false,
+  animationEnabled: true,
+  transitionSpec: {
+    open: TransitionSpecs.TransitionIOSSpec,
+    close: TransitionSpecs.TransitionIOSSpec,
+  },
+  cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+}}
+```
+
+### Custom Transitions
+
+<Accordion title="Player - Vertical Slide">
+  The Player screen slides up from the bottom:
+
+  ```typescript
+  <Stack.Screen
+    name="Player"
+    component={Player}
+    options={{
+      gestureEnabled: true,
+      gestureDirection: 'vertical',
+      cardStyleInterpolator: ({current, layouts}) => ({
+        cardStyle: {
+          transform: [
+            {
+              translateY: current.progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [layouts.screen.height, 0],
+              }),
+            },
+          ],
+        },
+      }),
+    }}
+  />
+  ```
+
+  This creates a modal-like experience where:
+  - Screen slides up from bottom
+  - Gesture-enabled dismissal
+  - Smooth interpolated animation
+</Accordion>
+
+<Accordion title="StackPlayer - Reveal from Bottom">
+  The StackPlayer uses Android-style reveal:
+
+  ```typescript
+  <Stack.Screen
+    name="StackPlayer"
+    options={{
+      cardStyleInterpolator:
+        CardStyleInterpolators.forRevealFromBottomAndroid,
+    }}
+    component={StackPlayer}
+  />
+  ```
+
+  This provides:
+  - Bottom sheet-like appearance
+  - Platform-consistent animation
+  - Quick access to track queue
+</Accordion>
+
+## Type-Safe Navigation
+
+### Route Parameters
+
+Define route params with TypeScript:
+
+```typescript
+export type RootStackParamList = {
+  Home: undefined;
+  Album: { albumId: string };
+  Search: undefined;
+  RandomPlaylist: undefined;
+  ArtistScren: { artistId: string };
+  Player: { trackId?: string };
+  StackPlayer: undefined;
+  Playlist: { playlistId: string };
+  AlbumsList: { category: string };
+  AlbumRealce: undefined;
+};
+```
+
+### Using Navigation Hook
+
+```typescript
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from 'scrrenTypes/screenStack';
+
+type NavigationProp = StackNavigationProp<RootStackParamList>;
+
+function AlbumCard({ album }) {
+  const navigation = useNavigation<NavigationProp>();
+  
+  const handlePress = () => {
+    navigation.navigate('Album', { albumId: album.id });
+  };
+  
+  return (
+    <TouchableOpacity onPress={handlePress}>
+      <Text>{album.name}</Text>
+    </TouchableOpacity>
+  );
+}
+```
+
+### Using Route Hook
+
+```typescript
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from 'scrrenTypes/screenStack';
+
+type AlbumRouteProp = RouteProp<RootStackParamList, 'Album'>;
+
+function Album() {
+  const route = useRoute<AlbumRouteProp>();
+  const { albumId } = route.params;
+  
+  return <Text>Album ID: {albumId}</Text>;
+}
+```
+
+## Navigation Methods
+
+### Navigate
+
+Push a new screen onto the stack:
+
+```typescript
+navigation.navigate('Album', { albumId: '123' });
+```
+
+### Go Back
+
+Return to previous screen:
+
+```typescript
+navigation.goBack();
+```
+
+### Replace
+
+Replace current screen:
+
+```typescript
+navigation.replace('Home');
+```
+
+### Reset
+
+Reset navigation state:
+
+```typescript
+navigation.reset({
+  index: 0,
+  routes: [{ name: 'Home' }],
+});
+```
+
+### Pop to Top
+
+Return to first screen:
+
+```typescript
+navigation.popToTop();
+```
+
+## Global Modal
+
+### Bottom Sheet Modal
+
+The `SheetModal` component is rendered globally:
+
+```typescript
+<Stack.Navigator>
+  {/* All screens */}
+</Stack.Navigator>
+<SheetModal />
+```
+
+This allows the bottom sheet to appear over any screen without navigation:
+
+```typescript
+import { useBottomSheetStore } from 'store/modalStore/useBottomSheetStore';
+
+function TrackOptions() {
+  const { setIsOpen, setTrackData } = useBottomSheetStore();
+  
+  const handleOpenSheet = (track) => {
+    setTrackData(track);
+    setIsOpen(true);
+  };
+  
+  return (
+    <TouchableOpacity onPress={() => handleOpenSheet(track)}>
+      <Icon name="more" />
+    </TouchableOpacity>
+  );
+}
+```
+
+## Navigation Patterns
+
+<CardGroup cols={2}>
+  <Card title="Deep Linking" icon="link">
+    Home → Artist → Album → Player
+    
+    Navigate through related content progressively
+  </Card>
+  
+  <Card title="Modal Screens" icon="window-restore">
+    Player and StackPlayer use modal-style transitions for temporary views
+  </Card>
+  
+  <Card title="Stack Management" icon="layer-group">
+    Use `goBack()` instead of `navigate()` for better stack management
+  </Card>
+  
+  <Card title="Global Modals" icon="bars-staggered">
+    Bottom sheets render globally, avoiding navigation complexity
+  </Card>
+</CardGroup>
+
+## Gesture Handling
+
+### Swipe Back Gesture
+
+Enabled by default with `GestureHandlerRootView`:
+
+```typescript
+<GestureHandlerRootView style={{flex: 1}}>
+  <NavigationContainer>
+    {/* Navigation */}
+  </NavigationContainer>
+</GestureHandlerRootView>
+```
+
+### Custom Gestures
+
+Player screen has vertical swipe:
+
+```typescript
+options={{
+  gestureEnabled: true,
+  gestureDirection: 'vertical',
+}}
+```
+
+## Navigation Guards
+
+Check conditions before navigation:
+
+```typescript
+const handleNavigate = () => {
+  if (!isConnected) {
+    Alert.alert('No internet connection');
+    return;
+  }
+  
+  navigation.navigate('Album', { albumId });
+};
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Type-Safe Navigation">
+    Always define route params in `RootStackParamList` and use typed hooks:
+
+    ```typescript
+    const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+    ```
+  </Accordion>
+
+  <Accordion title="Minimize Navigation Stack">
+    Use `replace()` or `reset()` for flows that shouldn't allow back navigation:
+
+    ```typescript
+    // After login, replace login screen
+    navigation.replace('Home');
+    ```
+  </Accordion>
+
+  <Accordion title="Handle Hardware Back Button">
+    On Android, handle back button for special screens:
+
+    ```typescript
+    import { BackHandler } from 'react-native';
+
+    useEffect(() => {
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          // Custom back behavior
+          return true; // Prevent default
+        }
+      );
+
+      return () => backHandler.remove();
+    }, []);
+    ```
+  </Accordion>
+
+  <Accordion title="Prefetch Screen Data">
+    Load data before navigation for smoother UX:
+
+    ```typescript
+    const handleNavigate = async () => {
+      // Prefetch album data
+      await queryClient.prefetchQuery(['album', albumId]);
+      navigation.navigate('Album', { albumId });
+    };
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Debugging Navigation
+
+### Enable Navigation Logging
+
+```typescript
+import { NavigationContainer } from '@react-navigation/native';
+
+<NavigationContainer
+  onStateChange={(state) => console.log('Navigation state:', state)}
+>
+  {/* Navigator */}
+</NavigationContainer>
+```
+
+### Check Current Route
+
+```typescript
+import { useNavigationState } from '@react-navigation/native';
+
+const routeName = useNavigationState(
+  state => state.routes[state.index].name
+);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="database" href="/development/state-management">
+    Learn about Zustand stores
+  </Card>
+  
+  <Card title="Services" icon="server" href="/development/services">
+    Explore the service layer
+  </Card>
+  
+  <Card title="Player Component" icon="music" href="/components/player">
+    Browse UI components
+  </Card>
+  
+  <Card title="Project Structure" icon="folder-tree" href="/development/project-structure">
+    Understand screen architecture
+  </Card>
+</CardGroup>

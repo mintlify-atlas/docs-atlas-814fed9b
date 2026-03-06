@@ -1,0 +1,127 @@
+---
+title: 'Streaming Service'
+description: 'Get streaming data from YouTube for audio playback'
+---
+
+## Overview
+
+The Streaming Service provides functionality to fetch streaming audio data from YouTube videos using the YouTube Internal API. It retrieves track metadata and audio URLs for playback in the app.
+
+## getStreamingData
+
+Fetches streaming data and metadata for a YouTube video track.
+
+### Function Signature
+
+```typescript
+getStreamingData(idTrack: string): Promise<AddTrack>
+```
+
+### Parameters
+
+<ParamField path="idTrack" type="string" required>
+  The YouTube video ID to fetch streaming data for
+</ParamField>
+
+### Returns
+
+<ResponseField name="AddTrack" type="object">
+  Track object compatible with react-native-track-player
+  
+  <ResponseField name="id" type="string">
+    The YouTube video ID
+  </ResponseField>
+  
+  <ResponseField name="url" type="string">
+    The streaming audio URL or fallback local audio file
+  </ResponseField>
+  
+  <ResponseField name="title" type="string">
+    The track title from YouTube video details
+  </ResponseField>
+  
+  <ResponseField name="artist" type="string">
+    The artist/author name from YouTube video details
+  </ResponseField>
+  
+  <ResponseField name="artwork" type="string">
+    URL to the track artwork/thumbnail image
+  </ResponseField>
+  
+  <ResponseField name="duration" type="number">
+    Track duration in seconds
+  </ResponseField>
+</ResponseField>
+
+### Error Handling
+
+If the API request fails, the function returns a fallback object:
+
+```typescript
+{
+  url: '',
+  artwork: ''
+}
+```
+
+Errors are logged to the console with the prefix "Error ==> desde la API:"
+
+## Implementation Details
+
+### YouTube API Integration
+
+The service uses the YouTube Internal API (`youtubei/v1/player`) with the following configuration:
+
+- **Client**: IOS_MUSIC (v5.26.1)
+- **Region**: US
+- **Language**: en
+- **Platform**: iOS
+
+### Audio Format Selection
+
+The function prioritizes adaptive audio formats from YouTube's streaming data:
+
+1. First attempts to use `adaptiveFormats[7]`
+2. Falls back to `adaptiveFormats[6]` if first is unavailable
+3. Uses hardcoded fallback URL or local audio file if formats are missing
+
+### Artwork Selection
+
+Thumbnails are selected from `videoDetails.thumbnail.thumbnails[4]`, with a fallback 404 error image if unavailable.
+
+## Usage Example
+
+```typescript
+import { getStreamingData } from '@/services/streaming/StreamingTrack';
+import TrackPlayer from 'react-native-track-player';
+
+// Fetch streaming data for a YouTube video
+const trackData = await getStreamingData('dQw4w9WgXcQ');
+
+// Add to track player queue
+await TrackPlayer.add(trackData);
+await TrackPlayer.play();
+```
+
+## Example Response
+
+```typescript
+{
+  id: "dQw4w9WgXcQ",
+  url: "https://rr1---sn-...",
+  title: "Rick Astley - Never Gonna Give You Up",
+  artist: "Rick Astley",
+  artwork: "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+  duration: 213
+}
+```
+
+## Notes
+
+<Warning>
+  The YouTube API key is hardcoded in the source. Consider moving this to environment configuration for security and flexibility.
+</Warning>
+
+<Info>
+  This service specifically targets the iOS Music client for optimal audio quality and compatibility.
+</Info>

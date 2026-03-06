@@ -1,0 +1,98 @@
+---
+title: "Playlist Store"
+description: "State management for playlist data using Zustand"
+---
+
+The `playlistStore` manages playlist-related state, including the current playlist ID and selected playlist data.
+
+## Import
+
+```typescript
+import { usePlaylisStore } from 'store/playlistStore/playlistStore';
+```
+
+## State
+
+<ParamField path="idPlaylist" type="string">
+  The ID of the currently selected playlist. Initialized as an empty string.
+</ParamField>
+
+<ParamField path="playlistSelected" type="RandomPlaylistInterface | null">
+  The detailed information of the currently selected playlist. Contains the complete playlist data or `null` if no playlist is selected.
+</ParamField>
+
+## Actions
+
+<ParamField path="setIdPlaylist" type="(idPlaylist: string) => void">
+  Sets the current playlist ID.
+  
+  **Parameters:**
+  - `idPlaylist` - The playlist ID to set
+</ParamField>
+
+<ParamField path="setPlaylistSelected" type="(playlist: RandomPlaylistInterface) => void">
+  Sets the currently selected playlist information.
+  
+  **Parameters:**
+  - `playlist` - The playlist object to set (type `RandomPlaylistInterface`)
+</ParamField>
+
+## Usage Example
+
+```typescript
+import { usePlaylisStore } from 'store/playlistStore/playlistStore';
+
+function PlaylistScreen() {
+  const { 
+    idPlaylist, 
+    playlistSelected, 
+    setIdPlaylist, 
+    setPlaylistSelected 
+  } = usePlaylisStore();
+
+  const handleSelectPlaylist = (playlist: RandomPlaylistInterface) => {
+    // Set the playlist ID
+    setIdPlaylist(playlist.id);
+    
+    // Set the selected playlist
+    setPlaylistSelected(playlist);
+  };
+
+  return (
+    <View>
+      <Text>Current Playlist: {idPlaylist}</Text>
+      {playlistSelected && (
+        <View>
+          <Text>{playlistSelected.title}</Text>
+          <Text>Tracks: {playlistSelected.tracks?.length}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+```
+
+## Accessing State
+
+You can access individual state values and actions:
+
+```typescript
+// Access only what you need
+const idPlaylist = usePlaylisStore(state => state.idPlaylist);
+const setIdPlaylist = usePlaylisStore(state => state.setIdPlaylist);
+
+// Or destructure multiple values
+const { playlistSelected, setPlaylistSelected } = usePlaylisStore();
+```
+
+## Performance Optimization
+
+For better performance, select only the state you need:
+
+```typescript
+// This will only re-render when idPlaylist changes
+const idPlaylist = usePlaylisStore(state => state.idPlaylist);
+
+// Instead of this, which re-renders on any state change
+const { idPlaylist, playlistSelected } = usePlaylisStore();
+```

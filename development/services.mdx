@@ -1,0 +1,579 @@
+---
+title: "Services"
+description: "Business logic and external service integrations in HiBeat Pro"
+icon: "server"
+---
+
+## Overview
+
+Services in HiBeat Pro handle all business logic, external API integrations, and complex operations. They are stateless functions that can be called from any component.
+
+## Service Architecture
+
+```
+services/
+├── TrackPlayerService/    # Audio playback management
+│   ├── SetupPlayer.ts     # Player initialization
+│   ├── TrackPlayerService.ts  # Playback controls
+│   ├── TrackPlayerEvents.ts   # Event handlers
+│   └── TrackPlayerStates.ts   # Player states
+├── streaming/             # Music streaming
+│   └── StreamingTrack.ts  # YouTube Music API
+├── downloader/            # Track download
+│   ├── Downloader.ts      # Download logic
+│   └── PermissionAndroid.ts  # Android permissions
+└── client/                # API client setup
+    └── QueryClient.ts     # React Query client
+```
+
+## Track Player Service
+
+### Setup Player
+
+Initializes the audio player with configuration:
+
+```typescript src/services/TrackPlayerService/SetupPlayer.ts
+import TrackPlayer, {
+  AppKilledPlaybackBehavior,
+  Capability,
+} from 'react-native-track-player';
+
+export const SetupPlayer = async () => {
+  try {
+    const options = {
+      autoHandleInterruptions: true,
+      permanent: true,
+    };
+    await TrackPlayer.setupPlayer(options);
+    await TrackPlayer.updateOptions({
+      android: {
+        appKilledPlaybackBehavior:
+          AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+      },
+      capabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.Stop,
+        Capability.Skip,
+      ],
+      compactCapabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.Stop,
+        Capability.Skip,
+      ],
+      progressUpdateEventInterval: 2,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+```
+
+**Key Features:**
+- Auto-handles audio interruptions (calls, notifications)
+- Configures playback controls (play, pause, skip)
+- Sets up notification controls
+- Updates progress every 2 seconds
+
+**Usage:**
+
+```typescript
+import { SetupPlayer } from 'services/TrackPlayerService/SetupPlayer';
+
+useEffect(() => {
+  SetupPlayer();
+}, []);
+```
+
+### Playback Service
+
+Handles remote control events:
+
+```typescript src/services/TrackPlayerService/TrackPlayerService.ts
+import {Event} from 'react-native-track-player';
+import TrackPlayer from 'react-native-track-player';
+
+export const PlaybackService = async function () {
+  TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
+
+  TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
+
+  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.stop());
+
+  TrackPlayer.addEventListener(Event.RemoteNext, () =>
+    TrackPlayer.skipToNext(),
+  );
+
+  TrackPlayer.addEventListener(Event.RemotePrevious, () =>
+    TrackPlayer.skipToPrevious(),
+  );
+};
+```
+
+**Key Features:**
+- Responds to lock screen controls
+- Handles headphone button events
+- Integrates with notification controls
+- Manages Bluetooth device commands
+
+**Usage:**
+
+Registered globally in `index.js`:
+
+```typescript
+import TrackPlayer from 'react-native-track-player';
+import { PlaybackService } from 'services/TrackPlayerService/TrackPlayerService.ts';
+
+TrackPlayer.registerPlaybackService(() => PlaybackService);
+```
+
+## Streaming Service
+
+### Get Streaming Data
+
+Fetches audio stream URLs from YouTube Music:
+
+```typescript src/services/streaming/StreamingTrack.ts
+import axios from 'axios';
+import {AddTrack, Track} from 'react-native-track-player';
+
+export const getStreamingData = async (idTrack: string): Promise<AddTrack> => {
+  try {
+    let keyId = 'AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s';
+    const url = `https://www.youtube.com/youtubei/v1/player?key=${keyId}`;
+
+    const requestBody = {
+      contentCheckOk: true,
+      context: {
+        client: {
+          clientName: 'IOS_MUSIC',
+          clientVersion: '5.26.1',
+          gl: 'US',
+          hl: 'en',
+          osName: 'IOS',
+        },
+        user: {
+          lockedSafetyMode: false,
+        },
+      },
+      racyCheckOk: true,
+      videoId: `${idTrack}`,
+    };
+
+    const response = await axios.post(url, requestBody);
+    const data = response.data;
+
+    let formattedUrl =
+      (data.streamingData &&
+        data.streamingData.adaptiveFormats &&
+        data.streamingData.adaptiveFormats[7]) ||
+      (data.streamingData &&
+        data.streamingData.adaptiveFormats &&
+        data.streamingData.adaptiveFormats[6]) ||
+      'https://aac.saavncdn.com/694/f3ca9af9ec18aadbf685b83d88c0ca2c_320.mp4';
+
+    return {
+      id: data.videoDetails.videoId,
+      url: formattedUrl.url
+        ? formattedUrl.url
+        : require('../../../assets/music/effect.mp3'),
+      title: data.videoDetails.title,
+      artist: data.videoDetails.author,
+      artwork:
+        data.videoDetails?.thumbnail?.thumbnails[4]?.url ||
+        'https://coreldrawdesign.com/resources/previews/preview-errorpage-404-background-1614485326.jpg',
+      duration: data.videoDetails.lengthSeconds,
+    };
+  } catch (error) {
+    console.error('Error ==> desde la API:', error);
+    return {
+      url: '',
+      artwork: '',
+    };
+  }
+};
+```
+
+**Key Features:**
+- Fetches streaming URLs from YouTube Music API
+- Returns track data formatted for TrackPlayer
+- Handles errors gracefully with fallback
+- Selects optimal audio format
+
+**Usage:**
+
+```typescript
+import { getStreamingData } from 'services/streaming/StreamingTrack';
+import TrackPlayer from 'react-native-track-player';
+
+const playTrack = async (trackId: string) => {
+  const trackData = await getStreamingData(trackId);
+  await TrackPlayer.add(trackData);
+  await TrackPlayer.play();
+};
+```
+
+## Downloader Service
+
+### Track Downloader
+
+Downloads tracks with metadata and cover art:
+
+```typescript src/services/downloader/Downloader.ts
+import {FFmpegKit} from 'ffmpeg-kit-react-native';
+import {SongDetailed} from 'interfaces/SerachInterface/SearchTracks';
+import {Platform} from 'react-native';
+import RNFetchBlob from 'rn-fetch-blob';
+import {Song} from 'interfaces/ArtistInterface/YTMuiscArtistInterface';
+import Toast from 'react-native-toast-message';
+
+const downloadFile = async (
+  format: string,
+  trackInfo: SongDetailed | Song,
+  trckImg: string,
+) => {
+  try {
+    const {fs} = RNFetchBlob;
+    const safeName = trackInfo?.name.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeArtist = trackInfo?.artist.name.replace(/[^a-zA-Z0-9]/g, '_');
+
+    const directoryPath = `${fs.dirs.DownloadDir}`;
+    const isDir = await fs.isDir(directoryPath);
+    if (!isDir) {
+      await fs.mkdir(directoryPath);
+    }
+
+    const destinationFilePath = `${directoryPath}/${safeName}_${safeArtist}.m4a`;
+    const tempFilePath = `${destinationFilePath}-temp.m4a`;
+    const tempImagePath = `${directoryPath}/cover.jpg`;
+
+    // Download cover art
+    await RNFetchBlob.config({fileCache: true, path: tempImagePath}).fetch(
+      'GET',
+      trckImg,
+    );
+
+    const configOptions = {
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        mime: 'audio/aac',
+        notification: true,
+        path: destinationFilePath,
+        description: 'Download file...',
+        mediaScannable: true,
+        fileCache: true,
+      },
+    };
+
+    // Download audio file
+    await RNFetchBlob.config(configOptions)
+      .fetch('GET', format)
+      .progress((received, total) => {
+        console.log(
+          `Download progress: ${Math.floor((received / total) * 100)}%`,
+        );
+      });
+
+    // Add metadata using FFmpeg
+    const ffmpegCommand = `-y -i "${destinationFilePath}" -i "${tempImagePath}" -metadata Title="${
+      trackInfo?.name
+    }" -metadata Artist="${trackInfo?.artist.name}" -metadata Album="${
+      trackInfo?.album!.name
+    }" -map 0 -map 1 -c copy -disposition:v:0 attached_pic "${tempFilePath}"`;
+
+    const session = await FFmpegKit.execute(ffmpegCommand);
+    const returnCode = await session.getReturnCode();
+
+    if (returnCode.isValueSuccess()) {
+      await RNFetchBlob.fs.unlink(destinationFilePath);
+      await RNFetchBlob.fs.mv(tempFilePath, destinationFilePath);
+      Toast.show({
+        type: 'success',
+        text1: 'Download complete',
+        text2: 'Your track has been successfully downloaded ✅',
+      });
+    }
+
+    await RNFetchBlob.fs.unlink(tempImagePath);
+  } catch (error) {
+    console.error('Error during download:', error);
+    Toast.show({
+      type: 'error',
+      text1: 'Download failed',
+      text2: 'There was an error downloading the track ⚠️',
+    });
+  }
+};
+
+export const TrackDownloader = (
+  format: string,
+  trackInfo: SongDetailed | Song,
+  trckImg: string,
+) => {
+  if (Platform.OS === 'android') {
+    downloadFile(format, trackInfo, trckImg);
+  }
+};
+```
+
+**Key Features:**
+- Downloads audio files to device storage
+- Embeds metadata (title, artist, album)
+- Adds cover art to audio file
+- Shows progress notifications
+- Handles errors with toast messages
+- Android-only (requires storage permissions)
+
+**Usage:**
+
+```typescript
+import { TrackDownloader } from 'services/downloader/Downloader';
+
+const handleDownload = () => {
+  TrackDownloader(
+    track.streamingUrl,
+    track.info,
+    track.coverArt
+  );
+};
+```
+
+## Service Integration Patterns
+
+<Tabs>
+  <Tab title="With React Query">
+    Services work seamlessly with React Query:
+
+    ```typescript
+    import { useQuery } from '@tanstack/react-query';
+    import { getStreamingData } from 'services/streaming/StreamingTrack';
+
+    function useTrackStreaming(trackId: string) {
+      return useQuery(
+        ['streaming', trackId],
+        () => getStreamingData(trackId),
+        {
+          enabled: !!trackId,
+          staleTime: 5 * 60 * 1000, // 5 minutes
+        }
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab title="With Zustand">
+    Services can be called from Zustand actions:
+
+    ```typescript
+    import { create } from 'zustand';
+    import { getStreamingData } from 'services/streaming/StreamingTrack';
+
+    interface PlayerStore {
+      loadTrack: (trackId: string) => Promise<void>;
+    }
+
+    export const usePlayerStore = create<PlayerStore>(set => ({
+      loadTrack: async (trackId) => {
+        const trackData = await getStreamingData(trackId);
+        set({ currentTrack: trackData });
+      },
+    }));
+    ```
+  </Tab>
+
+  <Tab title="Direct Usage">
+    Services can be called directly in components:
+
+    ```typescript
+    import { TrackDownloader } from 'services/downloader/Downloader';
+
+    function DownloadButton({ track }) {
+      const [downloading, setDownloading] = useState(false);
+
+      const handleDownload = async () => {
+        setDownloading(true);
+        try {
+          await TrackDownloader(
+            track.url,
+            track.info,
+            track.artwork
+          );
+        } finally {
+          setDownloading(false);
+        }
+      };
+
+      return (
+        <Button
+          onPress={handleDownload}
+          disabled={downloading}
+        >
+          {downloading ? 'Downloading...' : 'Download'}
+        </Button>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Service Communication
+
+### Service to Component
+
+Services return data to components:
+
+```typescript
+const trackData = await getStreamingData(trackId);
+setTrack(trackData);
+```
+
+### Service to Service
+
+Services can call other services:
+
+```typescript
+import { getStreamingData } from './streaming/StreamingTrack';
+import TrackPlayer from 'react-native-track-player';
+
+export const playTrack = async (trackId: string) => {
+  const trackData = await getStreamingData(trackId);
+  await TrackPlayer.add(trackData);
+  await TrackPlayer.play();
+};
+```
+
+### Component to Service
+
+Components call services with parameters:
+
+```typescript
+const handlePlay = async () => {
+  await getStreamingData(track.id);
+};
+```
+
+## Error Handling
+
+### Try-Catch Pattern
+
+All services use try-catch for error handling:
+
+```typescript
+export const getStreamingData = async (idTrack: string) => {
+  try {
+    // Service logic
+    return data;
+  } catch (error) {
+    console.error('Error:', error);
+    return fallbackData;
+  }
+};
+```
+
+### Toast Notifications
+
+User-facing errors show toast messages:
+
+```typescript
+import Toast from 'react-native-toast-message';
+
+Toast.show({
+  type: 'error',
+  text1: 'Download failed',
+  text2: 'There was an error downloading the track',
+});
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Stateless Services" icon="circle-xmark">
+    Services should not maintain internal state. Use Zustand for state.
+  </Card>
+  
+  <Card title="Single Responsibility" icon="star">
+    Each service handles one specific domain (streaming, downloading, etc.).
+  </Card>
+  
+  <Card title="Error Handling" icon="shield">
+    Always wrap service calls in try-catch and provide fallbacks.
+  </Card>
+  
+  <Card title="Type Safety" icon="check">
+    Use TypeScript interfaces for service parameters and return types.
+  </Card>
+</CardGroup>
+
+## Testing Services
+
+```typescript
+import { getStreamingData } from 'services/streaming/StreamingTrack';
+
+describe('StreamingService', () => {
+  it('should fetch streaming data', async () => {
+    const trackData = await getStreamingData('test-track-id');
+    
+    expect(trackData).toBeDefined();
+    expect(trackData.id).toBe('test-track-id');
+    expect(trackData.url).toBeTruthy();
+  });
+
+  it('should handle errors gracefully', async () => {
+    const trackData = await getStreamingData('invalid-id');
+    
+    expect(trackData.url).toBe('');
+    expect(trackData.artwork).toBe('');
+  });
+});
+```
+
+## Performance Optimization
+
+### Caching with React Query
+
+```typescript
+const { data: trackData } = useQuery(
+  ['streaming', trackId],
+  () => getStreamingData(trackId),
+  {
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+  }
+);
+```
+
+### Debouncing Service Calls
+
+```typescript
+import { debounce } from 'lodash';
+
+const debouncedSearch = debounce(async (query: string) => {
+  const results = await searchService(query);
+  setResults(results);
+}, 300);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="database" href="/development/state-management">
+    Learn about Zustand stores
+  </Card>
+  
+  <Card title="Search Hook" icon="magnifying-glass" href="/api/hooks/use-search">
+    Understand custom React hooks
+  </Card>
+  
+  <Card title="Streaming Service" icon="circle-play" href="/api/streaming-service">
+    Explore streaming API
+  </Card>
+  
+  <Card title="Download Service" icon="download" href="/api/downloader-service">
+    Learn about download implementation
+  </Card>
+</CardGroup>

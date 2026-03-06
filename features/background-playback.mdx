@@ -1,0 +1,369 @@
+---
+title: 'Background Playback'
+description: 'Continue listening to music while using other apps or when the screen is off'
+icon: 'headphones'
+---
+
+## Overview
+
+HiBeat Pro uses **React Native Track Player** to provide seamless background audio playback. Music continues playing even when the app is in the background or the screen is locked.
+
+## Track Player Setup
+
+The Track Player is initialized during app startup with specific configurations for background playback.
+
+### Player Initialization
+
+```typescript
+export const SetupPlayer = async () => {
+  try {
+    const options = {
+      autoHandleInterruptions: true,
+      permanent: true,
+    };
+    
+    await TrackPlayer.setupPlayer(options);
+    await TrackPlayer.updateOptions({
+      android: {
+        appKilledPlaybackBehavior:
+          AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+      },
+      capabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.Stop,
+        Capability.Skip,
+      ],
+      compactCapabilities: [
+        Capability.Play,
+        Capability.Pause,
+        Capability.SkipToNext,
+        Capability.SkipToPrevious,
+        Capability.Stop,
+        Capability.Skip,
+      ],
+      progressUpdateEventInterval: 2,
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+```
+
+**Source:** `src/services/TrackPlayerService/SetupPlayer.ts`
+
+<Note>
+The `permanent: true` option enables the player to persist across app restarts.
+</Note>
+
+## Player Capabilities
+
+The app supports six main playback capabilities:
+
+<CardGroup cols={3}>
+  <Card title="Play" icon="play">
+    Start or resume playback
+  </Card>
+  <Card title="Pause" icon="pause">
+    Pause current track
+  </Card>
+  <Card title="Skip Next" icon="forward">
+    Skip to next track in queue
+  </Card>
+  <Card title="Skip Previous" icon="backward">
+    Go to previous track
+  </Card>
+  <Card title="Stop" icon="stop">
+    Stop playback completely
+  </Card>
+  <Card title="Skip" icon="shuffle">
+    Jump to specific track
+  </Card>
+</CardGroup>
+
+<Accordion title="Compact Capabilities">
+Compact capabilities define which controls appear in the notification's collapsed view. HiBeat Pro displays all six controls in both compact and expanded views for maximum user control.
+</Accordion>
+
+## Remote Controls
+
+The app implements a playback service that responds to remote control events from system media controls, Bluetooth devices, and headphones.
+
+### Playback Service
+
+```typescript
+export const PlaybackService = async function () {
+  TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
+  TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
+  TrackPlayer.addEventListener(Event.RemoteStop, () => TrackPlayer.stop());
+  TrackPlayer.addEventListener(Event.RemoteNext, () => TrackPlayer.skipToNext());
+  TrackPlayer.addEventListener(Event.RemotePrevious, () => TrackPlayer.skipToPrevious());
+};
+```
+
+**Source:** `src/services/TrackPlayerService/TrackPlayerService.ts`
+
+<Info>
+These event listeners enable control from:
+- Lock screen media controls
+- Notification controls
+- Bluetooth devices (car stereos, headphones)
+- Android Auto and CarPlay
+- Smart watches and wearables
+</Info>
+
+## Playback States
+
+The app tracks and responds to various playback states:
+
+<Tabs>
+  <Tab title="Playing">
+    ### Playing State
+    Track is actively playing audio.
+    
+    ```typescript
+    case State.Playing:
+      setIsPlaying(true);
+      break;
+    ```
+  </Tab>
+  
+  <Tab title="Paused">
+    ### Paused State
+    Playback is paused by user or system.
+    
+    ```typescript
+    case State.Paused:
+      setIsPlaying(false);
+      break;
+    ```
+  </Tab>
+  
+  <Tab title="Buffering">
+    ### Buffering State
+    Loading audio data from network.
+    
+    ```typescript
+    case State.Buffering:
+      setIsPlaying(false);
+      break;
+    ```
+  </Tab>
+  
+  <Tab title="Stopped">
+    ### Stopped State
+    Playback has been stopped completely.
+    
+    ```typescript
+    case State.Stopped:
+      setIsPlaying(false);
+      break;
+    ```
+  </Tab>
+</Tabs>
+
+### State Tracking Hook
+
+```typescript
+const events = [Event.PlaybackState, Event.PlaybackError];
+
+export const useIsTrackPlaying = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  useTrackPlayerEvents(events, event => {
+    if (event.type === Event.PlaybackState) {
+      switch (event.state) {
+        case State.Playing:
+          setIsPlaying(true);
+          break;
+        case State.Paused:
+        case State.Stopped:
+        case State.Buffering:
+        default:
+          setIsPlaying(false);
+          break;
+      }
+    }
+  });
+  
+  useEffect(() => {
+    const getInitialState = async () => {
+      const state = await TrackPlayer.getState();
+      setIsPlaying(state === State.Playing);
+    };
+    getInitialState();
+  }, []);
+  
+  return isPlaying;
+};
+```
+
+**Source:** `src/services/TrackPlayerService/TrackPlayerStates.ts`
+
+## Playback Controls
+
+The app provides several utility functions for controlling playback:
+
+### Toggle Playback
+
+```typescript
+export const togglePlayback = async () => {
+  const state = await TrackPlayer.getState();
+  if (state === State.Playing) {
+    await TrackPlayer.pause();
+  } else {
+    await TrackPlayer.play();
+  }
+};
+```
+
+### Previous Track Handler
+
+```typescript
+export const handlerPreviousTrack = async () => {
+  const progress = await TrackPlayer.getProgress();
+  const state = await TrackPlayer.getState();
+  
+  if (progress.position > 10) {
+    // Restart the song if played more than 10 seconds
+    await TrackPlayer.seekTo(0);
+  } else {
+    // Skip to previous track if less than 10 seconds
+    await TrackPlayer.skipToPrevious();
+  }
+  
+  // Ensure playback continues
+  if (state !== State.Playing) {
+    await TrackPlayer.play();
+  }
+};
+```
+
+<Note>
+The previous track button intelligently restarts the current track if more than 10 seconds have been played, mimicking the behavior of popular music apps.
+</Note>
+
+### Next Track Handler
+
+```typescript
+export const handlerNextTrack = async () => {
+  const state = await TrackPlayer.getState();
+  
+  await TrackPlayer.skipToNext();
+  
+  // Ensure playback continues
+  if (state !== State.Playing) {
+    await TrackPlayer.play();
+  }
+};
+```
+
+**Source:** `src/services/TrackPlayerService/TrackPlayerEvents.ts`
+
+## Progress Updates
+
+The player sends progress updates every 2 seconds:
+
+```typescript
+progressUpdateEventInterval: 2
+```
+
+This enables:
+- Real-time progress bars in the UI
+- Accurate seek functionality
+- Time display updates
+- Scrobbling integration (if implemented)
+
+## Interruption Handling
+
+The player automatically handles audio interruptions:
+
+```typescript
+autoHandleInterruptions: true
+```
+
+<Accordion title="Handled Interruptions">
+The player automatically responds to:
+- **Phone calls:** Pauses music during calls, resumes after
+- **Alarms:** Ducks audio or pauses temporarily
+- **Voice assistants:** Pauses for Siri, Google Assistant, etc.
+- **Navigation apps:** Ducks audio for navigation prompts
+- **Other audio apps:** Yields to higher priority audio
+</Accordion>
+
+## Android-Specific Behavior
+
+When the app is killed on Android:
+
+```typescript
+android: {
+  appKilledPlaybackBehavior:
+    AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+}
+```
+
+<Warning>
+Playback stops and the notification is removed when the user force-closes the app. This prevents unwanted battery drain and respects user intent.
+</Warning>
+
+## Queue Management
+
+The Track Player maintains a playback queue that supports:
+
+<Steps>
+  <Step title="Add Tracks">
+    Add single or multiple tracks to the queue
+  </Step>
+  <Step title="Remove Tracks">
+    Remove specific tracks from the queue
+  </Step>
+  <Step title="Skip to Track">
+    Jump to any track in the queue
+  </Step>
+  <Step title="Clear Queue">
+    Remove all tracks from the queue
+  </Step>
+</Steps>
+
+```typescript
+// Add track to queue
+await TrackPlayer.add(track);
+
+// Skip to next in queue
+await TrackPlayer.skipToNext();
+
+// Skip to previous in queue
+await TrackPlayer.skipToPrevious();
+```
+
+## Media Session Integration
+
+The background playback system integrates with the device's media session:
+
+<CardGroup cols={2}>
+  <Card title="Lock Screen Controls" icon="lock">
+    Full playback controls on lock screen
+  </Card>
+  <Card title="Notification Player" icon="bell">
+    Persistent notification with controls
+  </Card>
+  <Card title="Bluetooth Controls" icon="bluetooth">
+    Control from connected devices
+  </Card>
+  <Card title="Auto Integration" icon="car">
+    Android Auto and CarPlay support
+  </Card>
+</CardGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Music Streaming" icon="play" href="/features/music-streaming">
+    Learn how tracks are streamed to the player
+  </Card>
+  <Card title="Search & Discovery" icon="magnifying-glass" href="/features/search-discovery">
+    Find music to add to your queue
+  </Card>
+</CardGroup>

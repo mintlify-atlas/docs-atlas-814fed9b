@@ -1,0 +1,142 @@
+---
+title: "Search Store"
+description: "State management for search functionality using Zustand"
+---
+
+The `searchStore` manages search-related state, including the search query and search results for tracks, artists, and albums.
+
+## Import
+
+```typescript
+import { useSearchStore } from 'store/searchStore/SearchStore';
+```
+
+## State
+
+<ParamField path="searchSomething" type="string">
+  The current search query string. Initialized as an empty string.
+</ParamField>
+
+<ParamField path="trackList" type="SongDetailed[] | null">
+  Array of track search results. Contains `SongDetailed` objects or `null` if no tracks have been searched.
+</ParamField>
+
+<ParamField path="artistList" type="ArtistDetailed[] | null">
+  Array of artist search results. Contains `ArtistDetailed` objects or `null` if no artists have been searched.
+</ParamField>
+
+<ParamField path="albumsList" type="AlbumSearch[] | null">
+  Array of album search results. Contains `AlbumSearch` objects or `null` if no albums have been searched.
+</ParamField>
+
+## Actions
+
+<ParamField path="setSearchSomething" type="(search: string) => void">
+  Sets the current search query.
+  
+  **Parameters:**
+  - `search` - The search query string
+</ParamField>
+
+<ParamField path="setTrackList" type="(trackList: SongDetailed[]) => void">
+  Sets the track search results.
+  
+  **Parameters:**
+  - `trackList` - Array of track objects matching the search
+</ParamField>
+
+<ParamField path="setArtistList" type="(artistList: ArtistDetailed[]) => void">
+  Sets the artist search results.
+  
+  **Parameters:**
+  - `artistList` - Array of artist objects matching the search
+</ParamField>
+
+<ParamField path="setAlbumsList" type="(album: AlbumSearch[] | null) => void">
+  Sets the album search results.
+  
+  **Parameters:**
+  - `album` - Array of album objects matching the search, or `null` to clear results
+</ParamField>
+
+## Usage Example
+
+```typescript
+import { useSearchStore } from 'store/searchStore/SearchStore';
+
+function SearchScreen() {
+  const { 
+    searchSomething,
+    trackList,
+    artistList,
+    albumsList,
+    setSearchSomething,
+    setTrackList,
+    setArtistList,
+    setAlbumsList
+  } = useSearchStore();
+
+  const handleSearch = async (query: string) => {
+    // Update search query
+    setSearchSomething(query);
+    
+    // Fetch and set results
+    const results = await searchAPI(query);
+    
+    setTrackList(results.tracks);
+    setArtistList(results.artists);
+    setAlbumsList(results.albums);
+  };
+
+  return (
+    <View>
+      <SearchInput 
+        value={searchSomething}
+        onSearch={handleSearch}
+      />
+      
+      <Text>Tracks: {trackList?.length || 0}</Text>
+      <Text>Artists: {artistList?.length || 0}</Text>
+      <Text>Albums: {albumsList?.length || 0}</Text>
+    </View>
+  );
+}
+```
+
+## Accessing State
+
+You can access individual state values and actions:
+
+```typescript
+// Access only what you need
+const trackList = useSearchStore(state => state.trackList);
+const setTrackList = useSearchStore(state => state.setTrackList);
+
+// Or destructure multiple values
+const { searchSomething, setSearchSomething } = useSearchStore();
+```
+
+## Clearing Search Results
+
+```typescript
+function clearSearch() {
+  const { setSearchSomething, setTrackList, setArtistList, setAlbumsList } = useSearchStore.getState();
+  
+  setSearchSomething('');
+  setTrackList([]);
+  setArtistList([]);
+  setAlbumsList(null);
+}
+```
+
+## Performance Optimization
+
+For better performance in components that only need specific results:
+
+```typescript
+// Only re-render when trackList changes
+const trackList = useSearchStore(state => state.trackList);
+
+// Only re-render when artistList changes
+const artistList = useSearchStore(state => state.artistList);
+```

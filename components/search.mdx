@@ -1,0 +1,373 @@
+---
+title: Search Components
+description: Search functionality with results for tracks, albums, and artists
+---
+
+The Search components provide a comprehensive search interface with separate views for tracks, albums, and artists.
+
+## SearchForm
+
+Search input form with back navigation and search submission.
+
+### Features
+
+- Text input with form validation using react-hook-form
+- Back button navigation
+- Search button with icon
+- Parallel search across tracks, albums, and artists
+- Automatic result storage in search store
+- Enter key submission support
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { SearchForm } from 'components/SearchComponents/components/SearchForm';
+
+    export function SearchScreen() {
+      return (
+        <SearchForm />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Custom Styling">
+    ```tsx
+    import { SearchForm } from 'components/SearchComponents/components/SearchForm';
+    import { View, StyleSheet } from 'react-native';
+
+    export function SearchScreen() {
+      return (
+        <View style={styles.container}>
+          <SearchForm />
+        </View>
+      );
+    }
+
+    const styles = StyleSheet.create({
+      container: {
+        padding: 10,
+        backgroundColor: '#000'
+      }
+    });
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/SearchComponents/components/SearchForm.tsx:17`
+
+## TrackListSerach
+
+Displays search results for tracks with playback controls.
+
+### Props
+
+<ParamField path="topSongs" type="SongDetailed[]" required>
+  Array of track search results
+</ParamField>
+
+### Type Definitions
+
+```typescript
+interface SongDetailed {
+  videoId: string;
+  name: string;
+  duration: number;
+  artist: {
+    name: string;
+    artistId: string;
+  };
+  thumbnails: Array<{
+    url: string;
+  }>;
+}
+```
+
+### Features
+
+- FlashList for optimized scrolling
+- Track cards with thumbnail, name, artist, and duration
+- "Play All" button
+- Individual track playback with similar tracks suggestion
+- Three-dot menu for track options
+- Duration formatting in minutes:seconds
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { TrackListSerach } from 'components/SearchComponents/components/TrackListSearch';
+    import { useSearchStore } from 'store/searchStore/SearchStore';
+
+    export function TrackSearchResults() {
+      const { trackList } = useSearchStore();
+      
+      return (
+        <TrackListSerach topSongs={trackList} />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Loading State">
+    ```tsx
+    import { TrackListSerach } from 'components/SearchComponents/components/TrackListSearch';
+    import { useSearchStore } from 'store/searchStore/SearchStore';
+    import { ActivityIndicator } from 'react-native';
+
+    export function TrackSearchResults() {
+      const { trackList } = useSearchStore();
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        if (trackList.length > 0) {
+          setLoading(false);
+        }
+      }, [trackList]);
+
+      if (loading) {
+        return <ActivityIndicator />;
+      }
+      
+      return (
+        <TrackListSerach topSongs={trackList} />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/SearchComponents/components/TrackListSearch.tsx:68`
+
+## AlbumsListSearch
+
+Displays album search results in a scrollable list.
+
+### Props
+
+<ParamField path="albumArray" type="AlbumSearch[]" required>
+  Array of album search results
+</ParamField>
+
+### Type Definitions
+
+```typescript
+interface AlbumSearch {
+  name: string;
+  artist: {
+    name: string;
+    artistId: string;
+  };
+  year: number;
+  thumbnails: Array<{
+    url: string;
+  }>;
+}
+```
+
+### Features
+
+- FlashList for performance
+- Album cards with dynamic background colors
+- Color extraction from album artwork
+- Album name, artist, and year display
+- Navigation to album detail screen
+- Text truncation for long names
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { AlbumsListSearch } from 'components/SearchComponents/components/AlbumsListSearch';
+    import { useSearchStore } from 'store/searchStore/SearchStore';
+
+    export function AlbumSearchResults() {
+      const { albumsList } = useSearchStore();
+      
+      return (
+        <AlbumsListSearch albumArray={albumsList} />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Empty State">
+    ```tsx
+    import { AlbumsListSearch } from 'components/SearchComponents/components/AlbumsListSearch';
+    import { useSearchStore } from 'store/searchStore/SearchStore';
+    import { View, Text } from 'react-native';
+
+    export function AlbumSearchResults() {
+      const { albumsList } = useSearchStore();
+      
+      if (albumsList.length === 0) {
+        return (
+          <View>
+            <Text>No albums found</Text>
+          </View>
+        );
+      }
+      
+      return (
+        <AlbumsListSearch albumArray={albumsList} />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/SearchComponents/components/AlbumsListSearch.tsx:83`
+
+## ArtistListSearch
+
+Displays artist search results in a scrollable list.
+
+### Props
+
+<ParamField path="artistArray" type="ArtistDetailed[]" required>
+  Array of artist search results
+</ParamField>
+
+### Type Definitions
+
+```typescript
+interface ArtistDetailed {
+  artistId: string;
+  name: string;
+  thumbnails: Array<{
+    url: string;
+  }>;
+}
+```
+
+### Features
+
+- FlashList for performance
+- Artist cards with dynamic background colors
+- Color extraction from artist images
+- Navigation to artist detail screen
+- Circular artist images
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { ArtistListSearch } from 'components/SearchComponents/components/ArtistListSearch';
+    import { useSearchStore } from 'store/searchStore/SearchStore';
+
+    export function ArtistSearchResults() {
+      const { artistList } = useSearchStore();
+      
+      return (
+        <ArtistListSearch artistArray={artistList} />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Navigation">
+    ```tsx
+    import { ArtistListSearch } from 'components/SearchComponents/components/ArtistListSearch';
+    import { useSearchStore } from 'store/searchStore/SearchStore';
+    import { useNavigation } from '@react-navigation/native';
+
+    export function ArtistSearchResults() {
+      const { artistList } = useSearchStore();
+      const navigation = useNavigation();
+      
+      return (
+        <ArtistListSearch 
+          artistArray={artistList}
+        />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/SearchComponents/components/ArtistListSearch.tsx:71`
+
+## Search Flow
+
+The search components work together in this flow:
+
+1. User enters search query in **SearchForm**
+2. Form submits and triggers parallel searches for tracks, albums, and artists
+3. Results are stored in **useSearchStore**
+4. Results are displayed in respective list components:
+   - **TrackListSerach** for tracks
+   - **AlbumsListSearch** for albums
+   - **ArtistListSearch** for artists
+
+### Complete Search Implementation
+
+```tsx
+import { SearchForm } from 'components/SearchComponents/components/SearchForm';
+import { TrackListSerach } from 'components/SearchComponents/components/TrackListSearch';
+import { AlbumsListSearch } from 'components/SearchComponents/components/AlbumsListSearch';
+import { ArtistListSearch } from 'components/SearchComponents/components/ArtistListSearch';
+import { useSearchStore } from 'store/searchStore/SearchStore';
+import { View, StyleSheet } from 'react-native';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+
+const Tab = createMaterialTopTabNavigator();
+
+export function SearchScreen() {
+  const { trackList, albumsList, artistList } = useSearchStore();
+
+  return (
+    <View style={styles.container}>
+      <SearchForm />
+      
+      <Tab.Navigator>
+        <Tab.Screen name="Tracks">
+          {() => <TrackListSerach topSongs={trackList} />}
+        </Tab.Screen>
+        
+        <Tab.Screen name="Albums">
+          {() => <AlbumsListSearch albumArray={albumsList} />}
+        </Tab.Screen>
+        
+        <Tab.Screen name="Artists">
+          {() => <ArtistListSearch artistArray={artistList} />}
+        </Tab.Screen>
+      </Tab.Navigator>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000'
+  }
+});
+```
+
+## State Management
+
+The search components use:
+
+- `useSearchStore()` - Stores search results for tracks, albums, and artists
+- `useAlbumStore()` - Stores selected album for navigation
+- `useArtistStore()` - Stores selected artist for navigation
+- `useBottomSheetStore()` - Controls track options modal
+- `useModalTrack()` - Manages track detail information
+
+## Search Services
+
+The SearchForm component uses these search functions:
+
+```typescript
+// Search tracks
+const tracks = await serachTracksFuntion(query);
+
+// Search artists
+const artists = await serachArtistFuntion(query);
+
+// Search albums
+const albums = await searchAlbumsByAxios(query);
+```
+
+All three searches run in parallel using `Promise.all()` for optimal performance.

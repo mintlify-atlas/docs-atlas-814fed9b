@@ -1,0 +1,153 @@
+---
+title: 'Music Streaming'
+description: 'Stream music directly from YouTube Music with adaptive audio quality'
+icon: 'play'
+---
+
+## Overview
+
+HiBeat Pro integrates with YouTube Music's API to provide seamless music streaming. The app fetches audio streams in real-time and plays them through the React Native Track Player library.
+
+## How It Works
+
+The streaming system uses YouTube's internal API (`youtubei/v1/player`) to retrieve audio stream URLs and metadata for any track.
+
+### YouTube Music API Integration
+
+The `getStreamingData` function handles all streaming requests:
+
+```typescript
+export const getStreamingData = async (idTrack: string): Promise<AddTrack> => {
+  const url = `https://www.youtube.com/youtubei/v1/player?key=${keyId}`;
+  
+  const requestBody = {
+    contentCheckOk: true,
+    context: {
+      client: {
+        clientName: 'IOS_MUSIC',
+        clientVersion: '5.26.1',
+        gl: 'US',
+        hl: 'en',
+        osName: 'IOS',
+      },
+      user: {
+        lockedSafetyMode: false,
+      },
+    },
+    racyCheckOk: true,
+    videoId: idTrack,
+  };
+  
+  const response = await axios.post(url, requestBody);
+  return formatTrackData(response.data);
+};
+```
+
+**Source:** `src/services/streaming/StreamingTrack.ts`
+
+<Note>
+The app uses the iOS Music client identifier for optimal audio quality and compatibility.
+</Note>
+
+## Audio Quality
+
+HiBeat Pro uses adaptive audio format selection to ensure the best quality:
+
+<Tabs>
+  <Tab title="Primary Format">
+    The app first attempts to use `adaptiveFormats[7]`, which typically provides:
+    - **Format:** AAC/M4A
+    - **Bitrate:** ~128-256 kbps
+    - **Sample Rate:** 44.1 kHz
+  </Tab>
+  
+  <Tab title="Fallback Format">
+    If the primary format is unavailable, it falls back to `adaptiveFormats[6]`:
+    - **Format:** AAC/M4A
+    - **Bitrate:** ~96-128 kbps
+    - **Sample Rate:** 44.1 kHz
+  </Tab>
+</Tabs>
+
+```typescript
+let formattedUrl =
+  (data.streamingData?.adaptiveFormats?.[7]) ||
+  (data.streamingData?.adaptiveFormats?.[6]) ||
+  fallbackAudio;
+```
+
+## Track Metadata
+
+Each streaming track includes comprehensive metadata:
+
+<Accordion title="Track Object Structure">
+```typescript
+interface AddTrack {
+  id: string;              // YouTube video ID
+  url: string;             // Streaming URL
+  title: string;           // Track title
+  artist: string;          // Artist name
+  artwork: string;         // Album artwork URL (highest quality)
+  duration: number;        // Track length in seconds
+}
+```
+</Accordion>
+
+### Artwork Quality
+
+The app retrieves the highest quality thumbnail available:
+
+```typescript
+artwork: data.videoDetails?.thumbnail?.thumbnails[4]?.url
+```
+
+This typically provides artwork at **1280x720** or higher resolution.
+
+## Integration with Track Player
+
+Streaming tracks are seamlessly integrated with React Native Track Player:
+
+```typescript
+import { getStreamingData } from '@/services/streaming/StreamingTrack';
+import TrackPlayer from 'react-native-track-player';
+
+// Fetch and add track to queue
+const track = await getStreamingData(videoId);
+await TrackPlayer.add(track);
+await TrackPlayer.play();
+```
+
+<Info>
+All streaming operations are asynchronous and include error handling to gracefully manage network issues or unavailable tracks.
+</Info>
+
+## Error Handling
+
+The streaming service includes robust error handling:
+
+```typescript
+try {
+  // Fetch streaming data
+} catch (error) {
+  console.error('Error from API:', error);
+  return {
+    url: '',
+    artwork: '',
+  };
+}
+```
+
+<Warning>
+If a track fails to load, the service returns an empty track object to prevent app crashes.
+</Warning>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Background Playback" icon="headphones" href="/features/background-playback">
+    Continue listening while using other apps
+  </Card>
+  <Card title="Search & Discovery" icon="magnifying-glass" href="/features/search-discovery">
+    Find and stream millions of tracks
+  </Card>
+</CardGroup>

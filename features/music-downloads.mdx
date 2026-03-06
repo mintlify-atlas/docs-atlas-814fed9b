@@ -1,0 +1,238 @@
+---
+title: 'Music Downloads'
+description: 'Download tracks with metadata and album artwork for offline listening'
+icon: 'download'
+---
+
+## Overview
+
+HiBeat Pro allows users to download music tracks for offline listening. The download system integrates FFmpeg for metadata embedding and uses Android's native download manager.
+
+<Note>
+Currently, downloads are only available on **Android** devices.
+</Note>
+
+## Download Process
+
+The download system follows a multi-step process to ensure high-quality offline files:
+
+<Steps>
+  <Step title="Permission Check">
+    Request storage permission from the user
+  </Step>
+  <Step title="Download Audio">
+    Fetch the audio file from the streaming URL
+  </Step>
+  <Step title="Download Artwork">
+    Retrieve the album cover image
+  </Step>
+  <Step title="Embed Metadata">
+    Use FFmpeg to add track info and artwork
+  </Step>
+  <Step title="Save to Device">
+    Store the final file in the Downloads folder
+  </Step>
+</Steps>
+
+## Implementation
+
+### Permission Handling
+
+Before downloading, the app requests storage permissions:
+
+```typescript
+export const getDownloadPermissionAndroid = async () => {
+  const granted = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+    {
+      title: 'File Download Permission',
+      message: 'Your permission is required to save Files to your device',
+      buttonNegative: 'Cancel',
+      buttonPositive: 'OK',
+    },
+  );
+  
+  return granted === PermissionsAndroid.RESULTS.GRANTED;
+};
+```
+
+**Source:** `src/services/downloader/PermissionAndroid.ts`
+
+### Main Download Function
+
+The `TrackDownloader` function orchestrates the entire download process:
+
+```typescript
+export const TrackDownloader = (
+  format: string,
+  trackInfo: SongDetailed | Song,
+  trckImg: string,
+) => {
+  if (Platform.OS === 'android') {
+    downloadFile(format, trackInfo, trckImg);
+  }
+};
+```
+
+**Source:** `src/services/downloader/Downloader.ts`
+
+## File Organization
+
+### Storage Location
+
+All downloaded tracks are saved to the device's **Downloads** folder:
+
+```typescript
+const directoryPath = `${fs.dirs.DownloadDir}`;
+const destinationFilePath = `${directoryPath}/${safeName}_${safeArtist}.m4a`;
+```
+
+### Filename Sanitization
+
+Track and artist names are sanitized to ensure filesystem compatibility:
+
+```typescript
+const safeName = trackInfo?.name.replace(/[^a-zA-Z0-9]/g, '_');
+const safeArtist = trackInfo?.artist.name.replace(/[^a-zA-Z0-9]/g, '_');
+```
+
+<Info>
+Special characters are replaced with underscores to prevent file system errors.
+</Info>
+
+## FFmpeg Integration
+
+HiBeat Pro uses **FFmpeg Kit** to embed metadata and album artwork into downloaded files.
+
+### Metadata Embedding
+
+The app embeds comprehensive metadata into each audio file:
+
+<Accordion title="Embedded Metadata Fields">
+- **Title:** Track name
+- **Artist:** Artist name
+- **Album:** Album name
+- **Artwork:** Album cover image (embedded as attached picture)
+</Accordion>
+
+### FFmpeg Command
+
+```typescript
+const ffmpegCommand = `-y -i "${destinationFilePath}" -i "${tempImagePath}" \
+  -metadata Title="${trackInfo?.name}" \
+  -metadata Artist="${trackInfo?.artist.name}" \
+  -metadata Album="${trackInfo?.album!.name}" \
+  -map 0 -map 1 -c copy -disposition:v:0 attached_pic "${tempFilePath}"`;
+
+const session = await FFmpegKit.execute(ffmpegCommand);
+const returnCode = await session.getReturnCode();
+
+if (returnCode.isValueSuccess()) {
+  // Replace original file with metadata-embedded version
+  await RNFetchBlob.fs.unlink(destinationFilePath);
+  await RNFetchBlob.fs.mv(tempFilePath, destinationFilePath);
+}
+```
+
+<Warning>
+FFmpeg processing requires temporary files. The app automatically cleans up temporary files after successful metadata embedding.
+</Warning>
+
+## Download Configuration
+
+The download uses Android's native download manager with these settings:
+
+```typescript
+const configOptions = {
+  addAndroidDownloads: {
+    useDownloadManager: true,
+    mime: 'audio/aac',
+    notification: true,
+    path: destinationFilePath,
+    description: 'Download file...',
+    mediaScannable: true,
+    fileCache: true,
+  },
+};
+```
+
+<Tabs>
+  <Tab title="Download Manager">
+    Uses Android's system download manager for reliable downloads
+  </Tab>
+  <Tab title="Notifications">
+    Shows download progress in the notification bar
+  </Tab>
+  <Tab title="Media Scanner">
+    Automatically makes files available in music apps
+  </Tab>
+</Tabs>
+
+## Progress Tracking
+
+The app provides real-time download progress:
+
+```typescript
+await RNFetchBlob.config(configOptions)
+  .fetch('GET', format)
+  .progress((received, total) => {
+    console.log(`Download progress: ${Math.floor((received / total) * 100)}%`);
+  });
+```
+
+## User Feedback
+
+Toast notifications inform users of download status:
+
+<Accordion title="Success Toast">
+```typescript
+Toast.show({
+  type: 'success',
+  text1: 'Download complete',
+  text2: 'Your track has been successfully downloaded ✅',
+});
+```
+</Accordion>
+
+<Accordion title="Error Toast">
+```typescript
+Toast.show({
+  type: 'error',
+  text1: 'Download failed',
+  text2: 'There was an error downloading the track ⚠️',
+});
+```
+</Accordion>
+
+## File Format
+
+Downloaded files are saved in **M4A** format:
+
+- **Codec:** AAC
+- **Extension:** .m4a
+- **Quality:** Matches streaming quality (128-256 kbps)
+- **Metadata:** Fully embedded with ID3 tags
+- **Artwork:** Embedded at original resolution
+
+## Technical Dependencies
+
+<CardGroup cols={2}>
+  <Card title="FFmpeg Kit" icon="code">
+    For audio metadata and artwork embedding
+  </Card>
+  <Card title="RN Fetch Blob" icon="server">
+    For file downloads and filesystem operations
+  </Card>
+  <Card title="React Native Toast" icon="bell">
+    For user notifications
+  </Card>
+  <Card title="Permissions Android" icon="shield">
+    For storage permission management
+  </Card>
+</CardGroup>
+
+## Related Features
+
+<Card title="Music Streaming" icon="play" href="/features/music-streaming">
+  Learn how the streaming service provides audio URLs for downloads
+</Card>

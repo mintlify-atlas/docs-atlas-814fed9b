@@ -1,0 +1,275 @@
+---
+title: Playlist Components
+description: Display and manage playlists with track listings and playback controls
+---
+
+The Playlist components provide an interface for displaying playlist information and managing track collections.
+
+## PlaylistHeader
+
+Displays playlist artwork and title in a horizontal layout.
+
+### Features
+
+- Large playlist artwork with FastImage
+- Scrolling text ticker for long playlist names
+- Consistent styling with album header
+- Integration with playlist store
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { PlaylistHeader } from 'components/PlaylistComponents/components/PlaylistHeader';
+
+    export function PlaylistScreen() {
+      return (
+        <PlaylistHeader />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Store">
+    ```tsx
+    import { PlaylistHeader } from 'components/PlaylistComponents/components/PlaylistHeader';
+    import { usePlaylisStore } from 'store/playlistStore/playlistStore';
+    import { useEffect } from 'react';
+
+    export function PlaylistScreen({ playlistId }) {
+      const { setPlaylistSelected } = usePlaylisStore();
+      
+      useEffect(() => {
+        // Load playlist data
+        loadPlaylist(playlistId).then(setPlaylistSelected);
+      }, [playlistId]);
+      
+      return (
+        <PlaylistHeader />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/PlaylistComponents/components/PlaylistHeader.tsx:7`
+
+## TrackListByPlaylist
+
+Scrollable list of tracks in a playlist with playback controls.
+
+### Props
+
+<ParamField path="topSongs" type="PublicPlaylist[]" required>
+  Array of track objects from the playlist
+</ParamField>
+
+### Type Definitions
+
+```typescript
+interface PublicPlaylist {
+  videoId: string;
+  name: string;
+  artist: string;
+  thumbnails: Array<{
+    url: string;
+    width: number;
+    height: number;
+  }>;
+}
+```
+
+### Features
+
+- FlashList for optimized scrolling performance
+- Individual track cards with artwork
+- "Play All" button to queue entire playlist
+- Track options menu (three-dot menu)
+- Tap track to play from that position
+- Automatic thumbnail size selection
+- Integration with TrackPlayer
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { TrackListByPlaylist } from 'components/PlaylistComponents/components/TracklistByPlaylist';
+
+    export function PlaylistScreen({ tracks }) {
+      return (
+        <TrackListByPlaylist topSongs={tracks} />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Complete Playlist View">
+    ```tsx
+    import { PlaylistHeader } from 'components/PlaylistComponents/components/PlaylistHeader';
+    import { TrackListByPlaylist } from 'components/PlaylistComponents/components/TracklistByPlaylist';
+    import { View } from 'react-native';
+
+    export function PlaylistScreen({ tracks }) {
+      return (
+        <View style={{ flex: 1 }}>
+          <PlaylistHeader />
+          <TrackListByPlaylist topSongs={tracks} />
+        </View>
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Data Loading">
+    ```tsx
+    import { PlaylistHeader } from 'components/PlaylistComponents/components/PlaylistHeader';
+    import { TrackListByPlaylist } from 'components/PlaylistComponents/components/TracklistByPlaylist';
+    import { useState, useEffect } from 'react';
+    import { View, ActivityIndicator } from 'react-native';
+
+    export function PlaylistScreen({ playlistId }) {
+      const [tracks, setTracks] = useState([]);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const loadTracks = async () => {
+          const data = await fetchPlaylistTracks(playlistId);
+          setTracks(data);
+          setLoading(false);
+        };
+        loadTracks();
+      }, [playlistId]);
+
+      if (loading) {
+        return <ActivityIndicator />;
+      }
+
+      return (
+        <View style={{ flex: 1 }}>
+          <PlaylistHeader />
+          <TrackListByPlaylist topSongs={tracks} />
+        </View>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/PlaylistComponents/components/TracklistByPlaylist.tsx:68`
+
+## TrackCard Component
+
+Individual track card displayed within TrackListByPlaylist.
+
+### Features
+
+- Track thumbnail artwork
+- Track name and artist
+- Three-dot menu for track options
+- Tap to play functionality
+- Text truncation with ellipsis
+
+### Internal Usage
+
+The TrackCard is used internally by TrackListByPlaylist:
+
+```tsx
+<TrackCard
+  track={item}
+  position={index}
+  onTrackSelect={handleSelectTrack}
+/>
+```
+
+Location: `src/components/PlaylistComponents/components/TracklistByPlaylist.tsx:26`
+
+## Playback Integration
+
+The playlist components integrate with streaming and playback services:
+
+### Playing a Single Track
+
+```tsx
+const handleSelectTrack = async (position: number) => {
+  const promises = topSongs.map(track => {
+    return getStreamingData(track.videoId);
+  });
+  const streamingDataArray = await Promise.all(promises);
+  await TrackPlayer.setQueue(streamingDataArray);
+  await TrackPlayer.skip(position);
+  handlerPlay();
+};
+```
+
+### Playing All Tracks
+
+```tsx
+const playeAllTracks = async () => {
+  const promises = topSongs.map(track => {
+    return getStreamingData(track.videoId);
+  });
+  const streamingDataArray = await Promise.all(promises);
+  await TrackPlayer.setQueue(streamingDataArray);
+  handlerPlay();
+};
+```
+
+## State Management
+
+The playlist components use the following stores:
+
+- `usePlaylisStore()` - Stores selected playlist information
+- `useBottomSheetStore()` - Controls track options modal
+- `useModalTrack()` - Manages track detail information
+
+## Differences from Album Components
+
+While similar to album components, playlist components have these distinctions:
+
+1. **Data Structure**: Uses `PublicPlaylist` interface instead of `AlbumStreaming`
+2. **Header**: Simpler header without artist/year information
+3. **Artwork Source**: Gets artwork from playlist object instead of album thumbnails
+4. **Use Case**: For user-created or curated playlists vs. artist albums
+
+## Complete Example
+
+```tsx
+import { PlaylistHeader } from 'components/PlaylistComponents/components/PlaylistHeader';
+import { TrackListByPlaylist } from 'components/PlaylistComponents/components/TracklistByPlaylist';
+import { View, StyleSheet } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { usePlaylisStore } from 'store/playlistStore/playlistStore';
+
+export function PlaylistScreen({ route }) {
+  const { playlistId } = route.params;
+  const { playlistSelected, setPlaylistSelected } = usePlaylisStore();
+  const [tracks, setTracks] = useState([]);
+
+  useEffect(() => {
+    // Load playlist and tracks
+    const loadPlaylist = async () => {
+      const playlist = await fetchPlaylist(playlistId);
+      setPlaylistSelected(playlist);
+      
+      const playlistTracks = await fetchPlaylistTracks(playlistId);
+      setTracks(playlistTracks);
+    };
+    loadPlaylist();
+  }, [playlistId]);
+
+  return (
+    <LinearGradient
+      style={styles.container}
+      colors={['#1a1a1a', '#000']}
+    >
+      <PlaylistHeader />
+      <TrackListByPlaylist topSongs={tracks} />
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1
+  }
+});
+```

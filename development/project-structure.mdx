@@ -1,0 +1,287 @@
+---
+title: "Project Structure"
+description: "Understanding the HiBeat Pro codebase organization and architecture"
+icon: "folder-tree"
+---
+
+## Overview
+
+HiBeat Pro follows a feature-based React Native architecture with clear separation of concerns. The codebase is organized into logical directories that make it easy to navigate and maintain.
+
+## Directory Layout
+
+```
+source/
+├── App.tsx                 # Root application component
+├── index.js               # Application entry point
+├── src/
+│   ├── components/        # Reusable UI components
+│   ├── screens/          # Screen-level components
+│   ├── services/         # Business logic and API services
+│   ├── store/            # Zustand state management
+│   ├── navigation/       # React Navigation setup
+│   ├── hooks/            # Custom React hooks
+│   ├── interfaces/       # TypeScript interfaces
+│   ├── types/            # TypeScript type definitions
+│   ├── utils/            # Utility functions and helpers
+│   ├── enums/            # Enumeration constants
+│   └── assets/           # Images and static resources
+├── android/              # Android native code
+├── ios/                  # iOS native code
+└── assets/               # Root-level assets
+```
+
+## Key Directories Explained
+
+<Accordion title="components/">
+  Contains all reusable UI components organized by feature:
+
+  - `ActiveTrackCard/` - Currently playing track display
+  - `Album/` - Album view components
+  - `PlayerComponents/` - Music player UI elements
+  - `SearchComponents/` - Search functionality components
+  - `BottomSheetModal/` - Modal sheet implementations
+  - `NavBar/` - Navigation bar components
+  - `StatusBar/` - Custom status bar components
+
+  Each component directory typically contains:
+  - `components/` - Sub-components
+  - `views/` - Main view components
+  - `styles/` - StyleSheet definitions
+</Accordion>
+
+<Accordion title="screens/">
+  Screen-level components that represent full pages:
+
+  ```
+  screens/
+  ├── home/              # Home screen
+  ├── player/            # Full player screen
+  ├── album/             # Album details screen
+  ├── artist/            # Artist profile screen
+  ├── playlist/          # Playlist view screen
+  ├── search/            # Search screen
+  ├── randomPlaylist/    # Random playlist screen
+  ├── albumsList/        # Albums list screen
+  ├── AlbumRealce/       # Album releases screen
+  └── stack/             # Track stack screen
+  ```
+
+  Each screen is self-contained with its own logic and styling.
+</Accordion>
+
+<Accordion title="services/">
+  Core business logic and external service integrations:
+
+  - `TrackPlayerService/` - Audio playback management
+  - `streaming/` - Music streaming from YouTube Music API
+  - `downloader/` - Track download functionality
+  - `client/` - API client and QueryClient setup
+
+  Services are stateless and can be called from any component.
+</Accordion>
+
+<Accordion title="store/">
+  Zustand stores for global state management:
+
+  ```
+  store/
+  ├── albumStore/           # Album state management
+  ├── playlistStore/        # Playlist state
+  ├── searchStore/          # Search results state
+  ├── artistStore/          # Artist data state
+  ├── trackStackStore/      # Track queue state
+  ├── modalStore/           # Bottom sheet modal state
+  ├── albumResaleStore/     # Album releases state
+  ├── randomPlatlistStore/  # Random playlists state
+  └── sheetModalTrack/      # Track modal state
+  ```
+
+  Each store manages a specific domain of the application state.
+</Accordion>
+
+<Accordion title="hooks/">
+  Custom React hooks for data fetching and side effects:
+
+  - `UseAlbum/` - Album data hooks
+  - `UseSearch/` - Search functionality hooks
+  - `UseSong/` - Song data hooks
+  - `UsePlaylist/` - Playlist hooks
+  - `UseTopArtist/` - Top artists hooks
+  - `UseYtMusic/` - YouTube Music API hooks
+
+  Hooks encapsulate data fetching logic using React Query.
+</Accordion>
+
+<Accordion title="interfaces/">
+  TypeScript interfaces defining data structures:
+
+  - `AlbumSearch/` - Album search result types
+  - `ArtistInterface/` - Artist data types
+  - `TrackPlayerInterfaces/` - Track player types
+  - `SerachInterface/` - Search result types
+  - `randomPlayList/` - Playlist types
+
+  Ensures type safety across the application.
+</Accordion>
+
+## Application Entry Points
+
+<Tabs>
+  <Tab title="index.js">
+    The main entry point that registers the app with React Native:
+
+    ```typescript index.js
+    import {QueryClientProvider} from '@tanstack/react-query';
+    import {AppRegistry} from 'react-native';
+    import TrackPlayer from 'react-native-track-player';
+    import App from './App';
+    import {name as appName} from './app.json';
+    import {PlaybackService} from 'services/TrackPlayerService/TrackPlayerService.ts';
+    import queryClient from 'services/client/QueryClient';
+    import Toast from 'react-native-toast-message';
+
+    const HiBeatApp = () => {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <App />
+          <Toast />
+        </QueryClientProvider>
+      );
+    };
+
+    AppRegistry.registerComponent(appName, () => HiBeatApp);
+    TrackPlayer.registerPlaybackService(() => PlaybackService);
+    ```
+
+    Key responsibilities:
+    - Wraps app in QueryClientProvider for React Query
+    - Registers TrackPlayer playback service
+    - Includes Toast notifications
+  </Tab>
+
+  <Tab title="App.tsx">
+    The root component that sets up the app shell:
+
+    ```typescript App.tsx
+    import React, {useEffect, useState} from 'react';
+    import {StyleSheet, Text, View} from 'react-native';
+    import NetInfo from '@react-native-community/netinfo';
+    import {StatusUpBar} from 'components/StatusBar/StatusUpBar';
+    import {colorBase} from 'enums/AppColors';
+    import Navigation from 'navigation/Navigation';
+    import {SetupPlayer} from 'services/TrackPlayerService/SetupPlayer';
+    import SplashScreen from 'react-native-splash-screen';
+
+    const App = () => {
+      const [isConnected, setIsConnected] = useState<any>(true);
+
+      useEffect(() => {
+        const unsubscribe = NetInfo.addEventListener(state => {
+          setIsConnected(state.isConnected);
+        });
+        return () => unsubscribe();
+      }, []);
+
+      useEffect(() => {
+        SplashScreen.hide();
+        SetupPlayer();
+      }, []);
+
+      return (
+        <View style={styles.appContainer}>
+          <StatusUpBar backgroundColor={colorBase} />
+          {!isConnected && (
+            <View style={styles.noInternet}>
+              <Text style={styles.textNoInternet}>
+                No Internet connection please reconnect..!
+              </Text>
+            </View>
+          )}
+          {isConnected && <Navigation />}
+        </View>
+      );
+    };
+    ```
+
+    Key responsibilities:
+    - Network connectivity monitoring
+    - Track player initialization
+    - Navigation setup
+    - Splash screen management
+  </Tab>
+</Tabs>
+
+## File Organization Patterns
+
+### Component Structure
+
+Components follow a consistent pattern:
+
+```
+ComponentName/
+├── components/           # Sub-components
+│   └── SubComponent.tsx
+├── views/               # Main view
+│   └── ComponentView.tsx
+└── styles/              # Styles
+    └── ComponentStyles.ts
+```
+
+### Naming Conventions
+
+- **Components**: PascalCase (e.g., `PlayerScreen.tsx`)
+- **Hooks**: camelCase with "use" prefix (e.g., `useAlbumStore.ts`)
+- **Services**: PascalCase (e.g., `StreamingTrack.ts`)
+- **Interfaces**: PascalCase with "Interface" suffix (e.g., `AlbumInterface.ts`)
+- **Stores**: camelCase with "Store" suffix (e.g., `albumStore.ts`)
+
+### Import Aliases
+
+The project uses absolute imports configured in `tsconfig.json`:
+
+```typescript
+import {StatusUpBar} from 'components/StatusBar/StatusUpBar';
+import {useAlbumStore} from 'store/albumStore/albumStore';
+import {SetupPlayer} from 'services/TrackPlayerService/SetupPlayer';
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Modular Design" icon="puzzle-piece">
+    Keep components small and focused. Extract reusable logic into hooks.
+  </Card>
+  
+  <Card title="Type Safety" icon="shield-check">
+    Always define TypeScript interfaces for data structures and component props.
+  </Card>
+  
+  <Card title="State Management" icon="database">
+    Use Zustand stores for global state, local state for component-specific data.
+  </Card>
+  
+  <Card title="Service Layer" icon="layer-group">
+    Keep business logic in services, separate from UI components.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="State Management" icon="store" href="/development/state-management">
+    Learn about Zustand stores and state patterns
+  </Card>
+  
+  <Card title="Navigation" icon="route" href="/development/navigation">
+    Understand the navigation structure
+  </Card>
+  
+  <Card title="Services" icon="server" href="/development/services">
+    Explore the service layer architecture
+  </Card>
+  
+  <Card title="Player Component" icon="music" href="/components/player">
+    Browse the component library
+  </Card>
+</CardGroup>

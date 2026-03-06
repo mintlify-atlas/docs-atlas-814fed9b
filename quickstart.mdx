@@ -1,80 +1,405 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get up and running with HiBeat Pro in minutes
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+This guide will walk you through the essential features of HiBeat Pro, from launching the app to playing your first track. By the end, you'll understand how to search for music, stream tracks, download for offline playback, and manage your listening experience.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+Make sure you've completed the [installation](/installation) before proceeding with this guide.
 </Note>
+
+## First Launch
+
+<Steps>
+  <Step title="Start the Application">
+    Launch HiBeat Pro on your Android device. The app performs an automatic setup:
+    
+    ```typescript
+    // App.tsx initialization
+    useEffect(() => {
+      SplashScreen.hide();
+      SetupPlayer();
+    }, []);
+    ```
+    
+    This initializes the **Track Player service** with background playback capabilities.
+  </Step>
+
+  <Step title="Network Connection Check">
+    HiBeat Pro automatically detects your internet connection:
+    
+    ```typescript
+    useEffect(() => {
+      const unsubscribe = NetInfo.addEventListener(state => {
+        setIsConnected(state.isConnected);
+      });
+      return () => unsubscribe();
+    }, []);
+    ```
+    
+    <Warning>
+    An active internet connection is required for streaming and searching. Downloaded tracks can be played offline.
+    </Warning>
+  </Step>
+
+  <Step title="Explore the Home Screen">
+    The home screen displays:
+    - **Top Artists** - Popular and trending artists
+    - **Album Releases** - Latest album drops
+    - **Random Playlists** - Curated playlist recommendations
+    - **Active Track Card** - Currently playing track (bottom)
+  </Step>
+</Steps>
+
+## Searching for Music
+
+<Tabs>
+  <Tab title="Search Tracks">
+    ### Find Songs by Name
+    
+    1. Navigate to the **Search** tab
+    2. Enter a song name, artist, or keyword
+    3. Browse results with real-time search
+    
+    The search uses YouTube Music API:
+    
+    ```typescript
+    // hooks/UseSearch/UseSearch.ts
+    const ytmusic = new YTMusic();
+    
+    const searchFunction = async (query: string) => {
+      await ytmusic.initialize();
+      const results = await ytmusic.search(query);
+      return results;
+    };
+    ```
+    
+    <Tip>
+    Search results include tracks, artists, albums, and playlists - all in one unified interface.
+    </Tip>
+  </Tab>
+  
+  <Tab title="Browse Artists">
+    ### Explore Artist Profiles
+    
+    1. Tap any artist card from search or home screen
+    2. View their full discography
+    3. See top tracks and albums
+    
+    Artist data is fetched dynamically:
+    
+    ```typescript
+    // hooks/UseYtMusic/UserYtMusic.ts
+    const artistInfoFunction = async (artistId: string) => {
+      await ytmusic.initialize();
+      const artistInfo = await ytmusic.getArtist(artistId);
+      return artistInfo;
+    };
+    ```
+  </Tab>
+  
+  <Tab title="Browse Albums">
+    ### Discover Full Albums
+    
+    1. Search for an album or browse releases
+    2. Tap to view the complete tracklist
+    3. Play individual tracks or the entire album
+    
+    Albums include full metadata and artwork extracted from YouTube Music.
+  </Tab>
+</Tabs>
+
+## Playing Music
+
+### Stream a Track
+
+<Steps>
+  <Step title="Select a Track">
+    Tap any song from search results, albums, or playlists.
+  </Step>
+
+  <Step title="Automatic Streaming Setup">
+    HiBeat Pro fetches the streaming URL and loads the track:
+    
+    ```typescript
+    // services/streaming/StreamingTrack.ts
+    export const getStreamingData = async (idTrack: string) => {
+      const url = `https://www.youtube.com/youtubei/v1/player?key=${keyId}`;
+      
+      const requestBody = {
+        contentCheckOk: true,
+        context: {
+          client: {
+            clientName: 'IOS_MUSIC',
+            clientVersion: '5.26.1'
+          }
+        },
+        videoId: idTrack
+      };
+      
+      const response = await axios.post(url, requestBody);
+      const format = response.data.streamingData.adaptiveFormats[7];
+      
+      return {
+        id: response.data.videoDetails.videoId,
+        url: format.url,
+        title: response.data.videoDetails.title,
+        artist: response.data.videoDetails.author,
+        artwork: response.data.videoDetails.thumbnail.thumbnails[4].url,
+        duration: response.data.videoDetails.lengthSeconds
+      };
+    };
+    ```
+  </Step>
+
+  <Step title="Playback Controls">
+    Use the player interface:
+    - **Play/Pause** - Control playback
+    - **Skip Forward/Back** - Navigate between tracks
+    - **Seek Bar** - Jump to any position
+    - **Queue Management** - View and reorder upcoming tracks
+  </Step>
+</Steps>
+
+### Background Playback
+
+<Info>
+HiBeat Pro supports background playback with full notification controls.
+</Info>
+
+The Track Player is configured for background operation:
+
+```typescript
+// services/TrackPlayerService/SetupPlayer.ts
+export const SetupPlayer = async () => {
+  const options = {
+    autoHandleInterruptions: true,
+    permanent: true,
+  };
+  
+  await TrackPlayer.setupPlayer(options);
+  await TrackPlayer.updateOptions({
+    android: {
+      appKilledPlaybackBehavior:
+        AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification,
+    },
+    capabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.Stop,
+      Capability.Skip,
+    ],
+    progressUpdateEventInterval: 2,
+  });
+};
+```
+
+**Features:**
+- Continue listening when screen is locked
+- Full notification controls
+- Automatic handling of interruptions (calls, alarms)
+- Persists across app switching
+
+## Downloading Music
+
+<Warning>
+Download features are **Android-only** and require storage permissions.
+</Warning>
+
+<Steps>
+  <Step title="Enable Permissions">
+    On first download, grant storage permissions when prompted.
+  </Step>
+
+  <Step title="Download a Track">
+    1. Tap the **menu icon** (three dots) on any track
+    2. Select **Download**
+    3. Monitor progress in notification area
+    
+    The download process:
+    
+    ```typescript
+    // services/downloader/Downloader.ts
+    const downloadFile = async (format: string, trackInfo: Song, trackImg: string) => {
+      const {fs} = RNFetchBlob;
+      const safeName = trackInfo.name.replace(/[^a-zA-Z0-9]/g, '_');
+      const destinationPath = `${fs.dirs.DownloadDir}/${safeName}.m4a`;
+      
+      // Download audio file
+      await RNFetchBlob.config({
+        addAndroidDownloads: {
+          useDownloadManager: true,
+          mime: 'audio/aac',
+          notification: true,
+          path: destinationPath,
+          mediaScannable: true
+        }
+      }).fetch('GET', format);
+      
+      // Download cover art
+      await RNFetchBlob.config({
+        fileCache: true, 
+        path: tempImagePath
+      }).fetch('GET', trackImg);
+      
+      // Embed metadata with FFmpeg
+      const ffmpegCommand = `-y -i "${destinationPath}" -i "${tempImagePath}" 
+        -metadata Title="${trackInfo.name}" 
+        -metadata Artist="${trackInfo.artist.name}" 
+        -metadata Album="${trackInfo.album.name}" 
+        -map 0 -map 1 -c copy -disposition:v:0 attached_pic "${tempPath}"`;
+      
+      await FFmpegKit.execute(ffmpegCommand);
+    };
+    ```
+  </Step>
+
+  <Step title="Access Downloaded Files">
+    Downloaded tracks are saved to:
+    ```
+    /storage/emulated/0/Download/
+    ```
+    
+    Files include:
+    - High-quality audio (M4A format)
+    - Embedded album artwork
+    - Full metadata (title, artist, album)
+  </Step>
+</Steps>
+
+<Check>
+**Success Notification:** You'll see a toast message when download completes successfully.
+</Check>
+
+## Key Features Walkthrough
+
+### 1. State Management with Zustand
+
+HiBeat Pro uses Zustand for lightweight, efficient state management:
+
+```typescript
+// store/trackStackStore/GetTrackStore.ts
+import {create} from 'zustand';
+
+export const useTrackStore = create((set) => ({
+  currentTrack: null,
+  setCurrentTrack: (track) => set({currentTrack: track}),
+  queue: [],
+  addToQueue: (track) => set((state) => ({
+    queue: [...state.queue, track]
+  }))
+}));
+```
+
+### 2. Data Fetching with TanStack Query
+
+Efficient API calls with automatic caching:
+
+```typescript
+// hooks/UseYtMusic/UserYtMusic.ts
+export const useArtistInfoById = (artistId: string) => {
+  return useQuery({
+    queryKey: ['artistInfoById', artistId],
+    queryFn: () => artistInfoFunction(artistId),
+  });
+};
+```
+
+### 3. Optimized Lists with FlashList
+
+High-performance scrolling for large music libraries:
+
+```typescript
+import {FlashList} from '@shopify/flash-list';
+
+<FlashList
+  data={tracks}
+  renderItem={({item}) => <TrackItem track={item} />}
+  estimatedItemSize={72}
+/>
+```
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Create a Queue" icon="list-music">
+    1. Start playing a track
+    2. Tap "Add to Queue" on other tracks
+    3. Manage queue order in player screen
+  </Card>
+  
+  <Card title="Offline Listening" icon="cloud-arrow-down">
+    1. Download your favorite tracks
+    2. Access them anytime from Downloads
+    3. No internet required for playback
+  </Card>
+  
+  <Card title="Discover Similar" icon="compass">
+    1. Play any track
+    2. View "Similar Tracks" suggestions
+    3. Explore related artists and albums
+  </Card>
+  
+  <Card title="Build Playlists" icon="folder-music">
+    1. Browse curated playlists
+    2. Add tracks to your library
+    3. Create custom listening experiences
+  </Card>
+</CardGroup>
+
+## Tips for Best Experience
+
+<AccordionGroup>
+  <Accordion title="Audio Quality" icon="waveform">
+    HiBeat Pro automatically selects the highest quality audio format available (typically 128kbps AAC). For downloads, audio is saved in M4A format with full quality preservation.
+  </Accordion>
+
+  <Accordion title="Battery Optimization" icon="battery-full">
+    Background playback is optimized for battery life. If experiencing issues:
+    - Disable battery optimization for HiBeat Pro in system settings
+    - Ensure "Background data" is enabled for the app
+  </Accordion>
+
+  <Accordion title="Storage Management" icon="hard-drive">
+    Monitor download storage usage:
+    - Average track: 3-5 MB
+    - Album art embedded in each file
+    - Clear app cache periodically in Settings
+  </Accordion>
+
+  <Accordion title="Network Usage" icon="signal">
+    Streaming data usage:
+    - ~1 MB per minute of playback
+    - Use WiFi for downloads
+    - Downloaded tracks use zero data
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you're familiar with the basics:
+
+<CardGroup cols={3}>
+  <Card title="Music Streaming" icon="circle-play" href="/features/music-streaming">
+    Learn about streaming implementation
+  </Card>
+  
+  <Card title="Project Structure" icon="sitemap" href="/development/project-structure">
+    Understand the app's architecture
+  </Card>
+  
+  <Card title="View on GitHub" icon="github" href="https://github.com/Chris-THC/HiBeatPro">
+    Contribute to HiBeat Pro development
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+<Info>
+For issues or questions, open an issue on [GitHub](https://github.com/Chris-THC/HiBeatPro/issues).
+</Info>

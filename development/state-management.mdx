@@ -1,0 +1,440 @@
+---
+title: "State Management"
+description: "Using Zustand stores for global state management in HiBeat Pro"
+icon: "database"
+---
+
+## Overview
+
+HiBeat Pro uses [Zustand](https://github.com/pmndrs/zustand) for state management. Zustand provides a minimal, hook-based API that's perfect for React Native applications.
+
+## Why Zustand?
+
+<CardGroup cols={2}>
+  <Card title="Simple API" icon="code">
+    No boilerplate, no providers, just hooks
+  </Card>
+  
+  <Card title="TypeScript First" icon="shield-check">
+    Full TypeScript support with type inference
+  </Card>
+  
+  <Card title="Small Bundle" icon="feather">
+    Minimal size impact on your app
+  </Card>
+  
+  <Card title="No Context" icon="rocket">
+    No need for Context providers or HOCs
+  </Card>
+</CardGroup>
+
+## Store Architecture
+
+All stores are located in `src/store/` and follow a consistent pattern:
+
+```
+store/
+├── albumStore/           # Album selection and data
+├── playlistStore/        # Playlist management
+├── searchStore/          # Search results and query
+├── artistStore/          # Artist data
+├── trackStackStore/      # Track queue management
+├── modalStore/           # Bottom sheet modal state
+├── albumResaleStore/     # Album releases
+├── randomPlatlistStore/  # Random playlists
+└── sheetModalTrack/      # Track modal state
+```
+
+## Core Stores
+
+<Tabs>
+  <Tab title="Album Store">
+    Manages album selection and related data:
+
+    ```typescript src/store/albumStore/albumStore.ts
+    import { AlbumSearch } from 'interfaces/AlbumSearch/AlbumSearch';
+    import { AlbumRelaseInterface } from 'interfaces/AlbumsRelase/AlbumsRelase';
+    import { AlbumSummary } from 'interfaces/ArtistInterface/YTMuiscArtistInterface';
+    import {create} from 'zustand';
+
+    interface AlbumStore {
+      albumId: string;
+      setAlbumId: (albumId: string) => void;
+
+      albumInfoSelected: AlbumSearch | AlbumSummary | null;
+      setAlbumsInfoSelected: (album: AlbumSearch | AlbumSummary) => void;
+
+      albumListStore: AlbumRelaseInterface | null;
+      setAlbumListStore: (album: AlbumRelaseInterface) => void;
+    }
+
+    export const useAlbumStore = create<AlbumStore>(set => ({
+      albumId: '',
+      setAlbumId: (albumId: string): void => {
+        return set(() => ({
+          albumId: albumId,
+        }));
+      },
+
+      albumInfoSelected: null,
+      setAlbumsInfoSelected: (album: AlbumSearch | AlbumSummary): void => {
+        return set(() => ({
+          albumInfoSelected: album,
+        }));
+      },
+
+      albumListStore: null,
+      setAlbumListStore: (album: AlbumRelaseInterface): void => {
+        return set(() => ({
+          albumListStore: album,
+        }));
+      },
+    }));
+    ```
+
+    **Key Features:**
+    - Stores current album ID
+    - Maintains selected album information
+    - Caches album list data
+  </Tab>
+
+  <Tab title="Playlist Store">
+    Manages playlist selection and data:
+
+    ```typescript src/store/playlistStore/playlistStore.ts
+    import { RandomPlaylistInterface } from 'interfaces/randomPlayList/RandomPlaylist';
+    import { create } from 'zustand';
+
+    interface PlaylistStore {
+      idPlaylist: string;
+      setIdPlaylist: (idPlaylist: string) => void;
+
+      playlistSelected: RandomPlaylistInterface | null;
+      setPlaylistSelected: (album: RandomPlaylistInterface) => void;
+    }
+
+    export const usePlaylisStore = create<PlaylistStore>(set => ({
+      idPlaylist: '',
+      setIdPlaylist: (idPlaylist: string): void => {
+        return set(() => ({
+          idPlaylist: idPlaylist,
+        }));
+      },
+
+      playlistSelected: null,
+      setPlaylistSelected: (playlist: RandomPlaylistInterface): void => {
+        return set(() => ({
+          playlistSelected: playlist,
+        }));
+      },
+    }));
+    ```
+
+    **Key Features:**
+    - Tracks active playlist ID
+    - Stores selected playlist details
+    - Simple and focused state
+  </Tab>
+
+  <Tab title="Search Store">
+    Manages search state and results:
+
+    ```typescript src/store/searchStore/SearchStore.ts
+    import {AlbumSearch} from 'interfaces/AlbumSearch/AlbumSearch';
+    import {ArtistDetailed} from 'interfaces/SerachInterface/ArtistDetails';
+    import {SongDetailed} from 'interfaces/SerachInterface/SearchTracks';
+    import {create} from 'zustand';
+
+    interface SearchStore {
+      searchSomething: string;
+      setSearchSomething: (search: string) => void;
+
+      trackList: SongDetailed[] | null;
+      setTrackList: (trackList: SongDetailed[]) => void;
+
+      artistList: ArtistDetailed[] | null;
+      setArtistList: (artistList: ArtistDetailed[]) => void;
+
+      albumsList: AlbumSearch[] | null;
+      setAlbumsList: (album: AlbumSearch[] | null) => void;
+    }
+
+    export const useSearchStore = create<SearchStore>(set => ({
+      searchSomething: '',
+      setSearchSomething: (search: string): void => {
+        return set(() => ({
+          searchSomething: search,
+        }));
+      },
+
+      trackList: null,
+      setTrackList: (trackList: SongDetailed[]): void => {
+        return set(() => ({
+          trackList: trackList,
+        }));
+      },
+
+      artistList: null,
+      setArtistList: (artist: ArtistDetailed[]): void => {
+        return set(() => ({
+          artistList: artist,
+        }));
+      },
+
+      albumsList: null,
+      setAlbumsList: (album: AlbumSearch[] | null): void => {
+        return set(() => ({
+          albumsList: album,
+        }));
+      },
+    }));
+    ```
+
+    **Key Features:**
+    - Stores search query
+    - Maintains separate lists for tracks, artists, and albums
+    - Supports null state for initial/empty results
+  </Tab>
+</Tabs>
+
+## Usage Patterns
+
+### Reading State
+
+Access store state in any component:
+
+```typescript
+import { useAlbumStore } from 'store/albumStore/albumStore';
+
+function AlbumComponent() {
+  const albumId = useAlbumStore(state => state.albumId);
+  const albumInfo = useAlbumStore(state => state.albumInfoSelected);
+  
+  return (
+    <View>
+      <Text>Album ID: {albumId}</Text>
+      <Text>Album: {albumInfo?.name}</Text>
+    </View>
+  );
+}
+```
+
+### Updating State
+
+Call setter functions to update state:
+
+```typescript
+import { useAlbumStore } from 'store/albumStore/albumStore';
+
+function AlbumSelector() {
+  const setAlbumId = useAlbumStore(state => state.setAlbumId);
+  const setAlbumsInfoSelected = useAlbumStore(state => state.setAlbumsInfoSelected);
+  
+  const handleSelectAlbum = (album: AlbumSearch) => {
+    setAlbumId(album.browseId);
+    setAlbumsInfoSelected(album);
+  };
+  
+  return (
+    <TouchableOpacity onPress={() => handleSelectAlbum(album)}>
+      <Text>{album.name}</Text>
+    </TouchableOpacity>
+  );
+}
+```
+
+### Selecting Multiple Values
+
+```typescript
+const { albumId, albumInfoSelected, setAlbumId } = useAlbumStore(
+  state => ({
+    albumId: state.albumId,
+    albumInfoSelected: state.albumInfoSelected,
+    setAlbumId: state.setAlbumId,
+  })
+);
+```
+
+### Accessing Store Outside Components
+
+Zustand stores can be accessed outside React components:
+
+```typescript
+import { useAlbumStore } from 'store/albumStore/albumStore';
+
+// Get current state
+const currentAlbumId = useAlbumStore.getState().albumId;
+
+// Update state
+useAlbumStore.getState().setAlbumId('new-album-id');
+
+// Subscribe to changes
+const unsubscribe = useAlbumStore.subscribe(
+  state => console.log('Album changed:', state.albumId)
+);
+```
+
+## Store Patterns
+
+<Accordion title="State + Setter Pattern">
+  Each piece of state has a corresponding setter function:
+
+  ```typescript
+  interface Store {
+    value: string;              // State
+    setValue: (v: string) => void;  // Setter
+  }
+  ```
+
+  This pattern:
+  - Makes updates explicit and traceable
+  - Provides clear API for consumers
+  - Supports TypeScript inference
+</Accordion>
+
+<Accordion title="Null Initial State">
+  Complex data starts as `null` until loaded:
+
+  ```typescript
+  interface Store {
+    albumInfoSelected: AlbumSearch | null;
+    setAlbumsInfoSelected: (album: AlbumSearch) => void;
+  }
+  ```
+
+  This pattern:
+  - Distinguishes between "not loaded" and "loaded but empty"
+  - Prevents errors from accessing undefined properties
+  - Makes loading states explicit
+</Accordion>
+
+<Accordion title="Immutable Updates">
+  State updates return new objects:
+
+  ```typescript
+  setAlbumId: (albumId: string): void => {
+    return set(() => ({
+      albumId: albumId,
+    }));
+  }
+  ```
+
+  This pattern:
+  - Ensures proper React re-renders
+  - Maintains predictable state updates
+  - Follows React best practices
+</Accordion>
+
+## Complete Store List
+
+| Store | Purpose | Location |
+|-------|---------|----------|
+| `useAlbumStore` | Album selection and data | `store/albumStore/albumStore.ts` |
+| `usePlaylisStore` | Playlist management | `store/playlistStore/playlistStore.ts` |
+| `useSearchStore` | Search results | `store/searchStore/SearchStore.ts` |
+| `useArtistStore` | Artist data | `store/artistStore/artistStore.ts` |
+| `useTrackStackStore` | Track queue | `store/trackStackStore/GetTrackStore.ts` |
+| `useBottomSheetStore` | Modal state | `store/modalStore/useBottomSheetStore.ts` |
+| `useAlbumsResaleStore` | Album releases | `store/albumResaleStore/AlbumsResaleStore.ts` |
+| `useRandomPlaylistStore` | Random playlists | `store/randomPlatlistStore/randomPlaylistStore.ts` |
+| `useModalTrackStore` | Track modal | `store/sheetModalTrack/ModalTrack.ts` |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Selective Subscriptions" icon="filter">
+    Only select the state you need to prevent unnecessary re-renders:
+    ```typescript
+    const albumId = useAlbumStore(state => state.albumId);
+    ```
+  </Card>
+  
+  <Card title="Avoid Derived State" icon="ban">
+    Compute derived values in components, not stores:
+    ```typescript
+    const album = useAlbumStore(state => state.albumInfoSelected);
+    const albumName = album?.name || 'Unknown';
+    ```
+  </Card>
+  
+  <Card title="Type Safety" icon="shield">
+    Always define interfaces for store state:
+    ```typescript
+    interface AlbumStore {
+      albumId: string;
+      setAlbumId: (id: string) => void;
+    }
+    ```
+  </Card>
+  
+  <Card title="Single Responsibility" icon="star">
+    Each store manages one domain of state. Don't mix unrelated concerns.
+  </Card>
+</CardGroup>
+
+## Performance Optimization
+
+### Memoize Selectors
+
+```typescript
+import { useMemo } from 'react';
+
+const selectAlbumData = (state) => ({
+  id: state.albumId,
+  info: state.albumInfoSelected,
+});
+
+function AlbumComponent() {
+  const albumData = useAlbumStore(selectAlbumData);
+  // Component only re-renders when albumId or albumInfoSelected changes
+}
+```
+
+### Shallow Equality
+
+For multiple values, use shallow equality:
+
+```typescript
+import shallow from 'zustand/shallow';
+
+const { albumId, setAlbumId } = useAlbumStore(
+  state => ({ albumId: state.albumId, setAlbumId: state.setAlbumId }),
+  shallow
+);
+```
+
+## Testing Stores
+
+```typescript
+import { useAlbumStore } from 'store/albumStore/albumStore';
+
+describe('AlbumStore', () => {
+  it('should update album ID', () => {
+    const { setAlbumId, albumId } = useAlbumStore.getState();
+    
+    setAlbumId('test-album-123');
+    
+    expect(useAlbumStore.getState().albumId).toBe('test-album-123');
+  });
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Navigation" icon="route" href="/development/navigation">
+    Learn about screen navigation and routing
+  </Card>
+  
+  <Card title="Services" icon="server" href="/development/services">
+    Explore the service layer
+  </Card>
+  
+  <Card title="Hooks" icon="hook" href="/development/hooks">
+    Understand custom React hooks
+  </Card>
+  
+  <Card title="TypeScript" icon="code" href="/development/typescript">
+    Learn about type definitions
+  </Card>
+</CardGroup>

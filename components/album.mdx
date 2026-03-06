@@ -1,0 +1,256 @@
+---
+title: Album Components
+description: Display album information, artwork, and track listings
+---
+
+The Album components provide a rich interface for displaying album details, including artwork, metadata, and interactive track listings.
+
+## AlbumHeader
+
+Displays album artwork, name, artist, and release year in a horizontal layout.
+
+### Props
+
+<ParamField path="albumInfoSelected" type="AlbumSearch | AlbumSummary" required>
+  Album data object containing thumbnails, name, artist information, and year
+</ParamField>
+
+### Type Definitions
+
+```typescript
+interface AlbumSearch {
+  name: string;
+  artist: {
+    name: string;
+    artistId: string;
+  };
+  year: number;
+  thumbnails: Array<{
+    url: string;
+    width: number;
+    height: number;
+  }>;
+}
+```
+
+### Features
+
+- High-quality album artwork with FastImage
+- Scrolling text ticker for long album names
+- Artist name and year display
+- Text shadow effects for readability
+- Automatic thumbnail selection from multiple sizes
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { AlbumHeader } from 'components/Album/components/AlbumHeader';
+    import { useAlbumStore } from 'store/albumStore/albumStore';
+
+    export function AlbumScreen() {
+      const { albumInfoSelected } = useAlbumStore();
+      
+      return (
+        <AlbumHeader albumInfoSelected={albumInfoSelected} />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Custom Data">
+    ```tsx
+    import { AlbumHeader } from 'components/Album/components/AlbumHeader';
+
+    export function AlbumScreen() {
+      const albumData = {
+        name: "Abbey Road",
+        artist: {
+          name: "The Beatles",
+          artistId: "abc123"
+        },
+        year: 1969,
+        thumbnails: [
+          { url: "https://...", width: 500, height: 500 }
+        ]
+      };
+      
+      return (
+        <AlbumHeader albumInfoSelected={albumData} />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/Album/components/AlbumHeader.tsx:13`
+
+## TrackListByAlbum
+
+Scrollable list of tracks from an album with playback controls.
+
+### Props
+
+<ParamField path="topSongs" type="AlbumStreaming[]" required>
+  Array of track objects from the album
+</ParamField>
+
+### Type Definitions
+
+```typescript
+interface AlbumStreaming {
+  videoId: string;
+  title: string;
+  artist: string;
+  thumbnails: Array<{
+    url: string;
+  }>;
+}
+```
+
+### Features
+
+- FlashList for optimized scrolling performance
+- Individual track cards with artwork
+- "Play All" button to queue entire album
+- Track options menu (three-dot menu)
+- Tap track to play from that position
+- Integration with TrackPlayer for playback
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { TrackListByAlbum } from 'components/Album/components/TrackListByAlbum';
+
+    export function AlbumScreen({ tracks }) {
+      return (
+        <TrackListByAlbum topSongs={tracks} />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="Complete Album View">
+    ```tsx
+    import { AlbumHeader } from 'components/Album/components/AlbumHeader';
+    import { TrackListByAlbum } from 'components/Album/components/TrackListByAlbum';
+    import { View } from 'react-native';
+
+    export function AlbumScreen({ album, tracks }) {
+      return (
+        <View style={{ flex: 1 }}>
+          <AlbumHeader albumInfoSelected={album} />
+          <TrackListByAlbum topSongs={tracks} />
+        </View>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/Album/components/TrackListByAlbum.tsx:70`
+
+## TrackCard Component
+
+Individual track card displayed within TrackListByAlbum.
+
+### Features
+
+- Album artwork thumbnail
+- Track title and artist name
+- Three-dot menu for track options
+- Tap to play functionality
+- Truncated text with ellipsis for long titles
+
+### Internal Usage
+
+The TrackCard is used internally by TrackListByAlbum:
+
+```tsx
+<TrackCard
+  track={item}
+  position={index}
+  onTrackSelect={handleSelectTrack}
+/>
+```
+
+Location: `src/components/Album/components/TrackListByAlbum.tsx:26`
+
+## Playback Integration
+
+The album components integrate with the streaming and playback services:
+
+### Playing a Single Track
+
+```tsx
+const handleSelectTrack = async (position: number) => {
+  const promises = topSongs.map(track => {
+    return getStreamingData(track.videoId);
+  });
+  const streamingDataArray = await Promise.all(promises);
+  await TrackPlayer.setQueue(streamingDataArray);
+  await TrackPlayer.skip(position);
+  handlerPlay();
+};
+```
+
+### Playing All Tracks
+
+```tsx
+const playeAllTracks = async () => {
+  const promises = topSongs.map(track => {
+    return getStreamingData(track.videoId);
+  });
+  const streamingDataArray = await Promise.all(promises);
+  await TrackPlayer.setQueue(streamingDataArray);
+  handlerPlay();
+};
+```
+
+## State Management
+
+The album components use the following stores:
+
+- `useAlbumStore()` - Stores selected album information
+- `useBottomSheetStore()` - Controls track options modal
+- `useModalTrack()` - Manages track detail information
+
+## Complete Example
+
+```tsx
+import { AlbumHeader } from 'components/Album/components/AlbumHeader';
+import { TrackListByAlbum } from 'components/Album/components/TrackListByAlbum';
+import { View, StyleSheet } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+
+export function AlbumScreen() {
+  const { albumInfoSelected } = useAlbumStore();
+  const [tracks, setTracks] = useState([]);
+
+  useEffect(() => {
+    // Fetch album tracks
+    const loadTracks = async () => {
+      const albumTracks = await fetchAlbumTracks(albumInfoSelected.albumId);
+      setTracks(albumTracks);
+    };
+    loadTracks();
+  }, [albumInfoSelected]);
+
+  return (
+    <LinearGradient
+      style={styles.container}
+      colors={['#1a1a1a', '#000']}
+    >
+      <AlbumHeader albumInfoSelected={albumInfoSelected} />
+      <TrackListByAlbum topSongs={tracks} />
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1
+  }
+});
+```

@@ -1,0 +1,265 @@
+---
+title: useSearchResult
+description: React Query hook for searching music content across YouTube Music
+---
+
+## Overview
+
+The `useSearchResult` hook provides a React Query-powered interface for searching music content including songs, albums, artists, and playlists on YouTube Music.
+
+## Import
+
+```typescript
+import { useSearchResult } from 'hooks/UseSearch/UseSearch';
+```
+
+## Function Signature
+
+```typescript
+function useSearchResult(
+  something: string
+): UseQueryResult<SearchResult, Error>
+```
+
+## Parameters
+
+<ParamField path="something" type="string" required>
+  The search query string to find music content
+</ParamField>
+
+## Return Value
+
+<ResponseField name="data" type="SearchResult">
+  The search results returned from YouTube Music
+  
+  <Expandable title="SearchResult properties">
+    <ResponseField name="type" type="string">
+      The type of result (e.g., "SONG", "ALBUM", "ARTIST", "PLAYLIST")
+    </ResponseField>
+    
+    <ResponseField name="videoId" type="string" optional>
+      The video ID for songs
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      The name of the result
+    </ResponseField>
+    
+    <ResponseField name="artist" type="object" optional>
+      Artist information
+      <Expandable title="Artist properties">
+        <ResponseField name="name" type="string">
+          Artist name
+        </ResponseField>
+        <ResponseField name="artistId" type="string" optional>
+          Unique artist identifier
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="album" type="object" optional>
+      Album information
+      <Expandable title="Album properties">
+        <ResponseField name="name" type="string">
+          Album name
+        </ResponseField>
+        <ResponseField name="albumId" type="string">
+          Unique album identifier
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="duration" type="number" optional>
+      Duration in seconds
+    </ResponseField>
+    
+    <ResponseField name="thumbnails" type="Thumbnail[]">
+      Array of thumbnail images
+      <Expandable title="Thumbnail properties">
+        <ResponseField name="url" type="string">
+          Image URL
+        </ResponseField>
+        <ResponseField name="width" type="number">
+          Image width in pixels
+        </ResponseField>
+        <ResponseField name="height" type="number">
+          Image height in pixels
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="albumId" type="string" optional>
+      Album identifier (for album results)
+    </ResponseField>
+    
+    <ResponseField name="playlistId" type="string" optional>
+      Playlist identifier (for playlist results)
+    </ResponseField>
+    
+    <ResponseField name="year" type="number" optional>
+      Release year
+    </ResponseField>
+    
+    <ResponseField name="artistId" type="string" optional>
+      Artist identifier (for artist results)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Whether the query is currently loading
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  Whether the query encountered an error
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the query failed
+</ResponseField>
+
+<ResponseField name="refetch" type="function">
+  Function to manually refetch the query
+</ResponseField>
+
+## Usage Example
+
+```typescript
+import { useSearchResult } from 'hooks/UseSearch/UseSearch';
+
+function SearchComponent() {
+  const { data, isLoading, isError } = useSearchResult('The Beatles');
+
+  if (isLoading) return <Text>Loading...</Text>;
+  if (isError) return <Text>Error loading search results</Text>;
+
+  return (
+    <View>
+      <Text>{data?.name}</Text>
+      <Text>{data?.type}</Text>
+    </View>
+  );
+}
+```
+
+## Related Hooks
+
+- [useSearcTracksResult](/api/hooks/use-search#usesearctracksresult) - Search specifically for tracks
+
+---
+
+## useSearcTracksResult
+
+### Overview
+
+The `useSearcTracksResult` hook is specialized for searching songs/tracks on YouTube Music, returning detailed song information.
+
+### Import
+
+```typescript
+import { useSearcTracksResult } from 'hooks/UseSearch/UseSearchTracks';
+```
+
+### Function Signature
+
+```typescript
+function useSearcTracksResult(
+  track: string
+): UseQueryResult<SongDetailed[], Error>
+```
+
+### Parameters
+
+<ParamField path="track" type="string" required>
+  The track/song name to search for
+</ParamField>
+
+### Return Value
+
+<ResponseField name="data" type="SongDetailed[]">
+  Array of detailed song results
+  
+  <Expandable title="SongDetailed properties">
+    <ResponseField name="type" type="string">
+      Result type (always "SONG" for track results)
+    </ResponseField>
+    
+    <ResponseField name="videoId" type="string">
+      Unique video identifier for the song
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      Song title
+    </ResponseField>
+    
+    <ResponseField name="artist" type="object">
+      Artist information
+      <Expandable title="Artist properties">
+        <ResponseField name="name" type="string">
+          Artist name
+        </ResponseField>
+        <ResponseField name="artistId" type="string">
+          Unique artist identifier
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="album" type="object">
+      Album information
+      <Expandable title="Album properties">
+        <ResponseField name="name" type="string">
+          Album name
+        </ResponseField>
+        <ResponseField name="albumId" type="string">
+          Unique album identifier
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="duration" type="number">
+      Song duration in seconds
+    </ResponseField>
+    
+    <ResponseField name="thumbnails" type="Thumbnail[]">
+      Array of thumbnail images with different sizes
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Usage Example
+
+```typescript
+import { useSearcTracksResult } from 'hooks/UseSearch/UseSearchTracks';
+
+function TrackSearchComponent() {
+  const { data, isLoading, isError } = useSearcTracksResult('Hey Jude');
+
+  if (isLoading) return <Text>Searching...</Text>;
+  if (isError) return <Text>Error searching tracks</Text>;
+
+  return (
+    <FlatList
+      data={data}
+      renderItem={({ item }) => (
+        <View>
+          <Text>{item.name}</Text>
+          <Text>{item.artist.name}</Text>
+          <Text>{item.duration}s</Text>
+        </View>
+      )}
+    />
+  );
+}
+```
+
+## React Query Integration
+
+Both hooks use `@tanstack/react-query` for:
+- Automatic caching with query keys
+- Background refetching
+- Loading and error states
+- Request deduplication
+
+**Query Keys:**
+- `useSearchResult`: `['useSearchKey', serachFuntion]`
+- `useSearcTracksResult`: `['useSearchTracksKey', serachTracksFuntion]`

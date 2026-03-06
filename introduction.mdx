@@ -1,0 +1,116 @@
+---
+title: Introduction
+description: Welcome to HiBeat Pro - A powerful React Native music streaming application with YouTube Music integration
+---
+
+## What is HiBeat Pro?
+
+HiBeat Pro is a feature-rich React Native music streaming application that brings the power of YouTube Music to your mobile device. Built with modern React Native technologies, it provides a seamless music listening experience with advanced features like background playback, offline downloads, and intelligent search.
+
+<Note>
+HiBeat Pro is designed as a learning project to demonstrate React Native CLI capabilities while providing a fully functional music streaming experience.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Stream Music" icon="play">
+    Listen to millions of songs from YouTube Music with high-quality audio streaming
+  </Card>
+  <Card title="Download Tracks" icon="download">
+    Save your favorite tracks locally for offline playback with embedded metadata and album art
+  </Card>
+  <Card title="Advanced Search" icon="magnifying-glass">
+    Search by artist, album, or playlist with instant results
+  </Card>
+  <Card title="Background Playback" icon="music">
+    Continue listening even when the app is in the background or screen is locked
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+HiBeat Pro is built with cutting-edge technologies:
+
+- **React Native 0.74.3** - Cross-platform mobile development
+- **TypeScript** - Type-safe development
+- **YouTube Music API** (`ytmusic-api`) - Music data and streaming
+- **React Native Track Player** - Advanced audio playback with background support
+- **Zustand** - Lightweight state management
+- **TanStack Query** - Efficient data fetching and caching
+- **FFmpeg Kit** - Audio processing and metadata embedding
+
+## Who Is This For?
+
+<AccordionGroup>
+  <Accordion title="Music Lovers">
+    Enjoy a beautiful, feature-rich music streaming experience with offline capabilities and background playback.
+  </Accordion>
+  <Accordion title="React Native Developers">
+    Learn from a real-world React Native CLI application showcasing best practices in audio streaming, state management, and API integration.
+  </Accordion>
+  <Accordion title="Mobile App Developers">
+    Explore advanced mobile development concepts like background services, file downloads, and native module integration.
+  </Accordion>
+</AccordionGroup>
+
+## Architecture Overview
+
+The application follows a clean, modular architecture:
+
+```
+src/
+├── components/      # Reusable UI components
+├── screens/         # Screen-level components
+├── services/        # Business logic (streaming, downloads, player)
+├── hooks/           # Custom React hooks for data fetching
+├── store/           # Zustand state management
+├── navigation/      # React Navigation setup
+└── interfaces/      # TypeScript type definitions
+```
+
+## Platform Support
+
+<Info>
+Currently, HiBeat Pro is **Android-only**. iOS support is not available in the current version.
+</Info>
+
+**Minimum Requirements:**
+- Android SDK 24 (Android 7.0) or higher
+- Node.js 18 or higher
+- React Native 0.74.3
+
+## Getting Started
+
+Ready to dive in? Follow our comprehensive guides:
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Set up your development environment and install HiBeat Pro
+  </Card>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in minutes with our quick start guide
+  </Card>
+</CardGroup>
+
+## Open Source
+
+HiBeat Pro is open source software released under the MIT License. You are free to use, modify, and distribute this software in accordance with the license terms.
+
+<Warning>
+**Disclaimer:** The software is provided "as is" without warranties. Users must comply with applicable laws and YouTube's Terms of Service when using this application.
+</Warning>
+
+## Next Steps
+
+<Steps>
+  <Step title="Install Dependencies">
+    Follow the [installation guide](/installation) to set up your development environment
+  </Step>
+  <Step title="Run the App">
+    Build and launch HiBeat Pro on your Android device or emulator
+  </Step>
+  <Step title="Explore Features">
+    Check out the [quick start guide](/quickstart) to learn about key features
+  </Step>
+</Steps>

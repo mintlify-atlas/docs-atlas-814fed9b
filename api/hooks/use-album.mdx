@@ -1,0 +1,272 @@
+---
+title: Album Hooks
+description: React Query hooks for fetching album data and streaming information
+---
+
+## Overview
+
+HiBeat Pro provides two primary hooks for working with album data:
+- `useStreamingAlbum` - Fetch streaming tracks from an album/playlist
+- `UseIdPlayList` - Fetch album metadata by browse ID
+
+---
+
+## useStreamingAlbum
+
+### Description
+
+Fetches streamable tracks from an album or playlist using the playlist ID and cover image.
+
+### Import
+
+```typescript
+import { useStreamingAlbum } from 'hooks/UseAlbum/UseAlbum';
+```
+
+### Function Signature
+
+```typescript
+function useStreamingAlbum(
+  playlistId: string,
+  imgCover: string
+): UseQueryResult<AlbumStreaming[], Error>
+```
+
+### Parameters
+
+<ParamField path="playlistId" type="string" required>
+  The YouTube Music playlist ID to fetch tracks from
+</ParamField>
+
+<ParamField path="imgCover" type="string" required>
+  The cover image URL for the album/playlist
+</ParamField>
+
+### Return Value
+
+<ResponseField name="data" type="AlbumStreaming[]">
+  Array of streamable tracks from the album
+  
+  <Expandable title="AlbumStreaming properties">
+    <ResponseField name="videoId" type="string">
+      Unique video identifier for streaming
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Track title
+    </ResponseField>
+    
+    <ResponseField name="artist" type="string">
+      Artist name
+    </ResponseField>
+    
+    <ResponseField name="duration" type="number | string">
+      Track duration (in seconds or formatted string)
+    </ResponseField>
+    
+    <ResponseField name="artwork" type="string">
+      Track artwork URL
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Whether the query is currently loading
+</ResponseField>
+
+<ResponseField name="isError" type="boolean">
+  Whether the query encountered an error
+</ResponseField>
+
+<ResponseField name="error" type="Error | null">
+  Error object if the query failed
+</ResponseField>
+
+### Usage Example
+
+```typescript
+import { useStreamingAlbum } from 'hooks/UseAlbum/UseAlbum';
+
+function AlbumPlayer({ playlistId, coverImage }) {
+  const { data, isLoading, isError } = useStreamingAlbum(
+    playlistId,
+    coverImage
+  );
+
+  if (isLoading) return <Text>Loading album...</Text>;
+  if (isError) return <Text>Error loading album</Text>;
+
+  return (
+    <FlatList
+      data={data}
+      renderItem={({ item }) => (
+        <View>
+          <Image source={{ uri: item.artwork }} />
+          <Text>{item.title}</Text>
+          <Text>{item.artist}</Text>
+          <Text>{item.duration}</Text>
+        </View>
+      )}
+    />
+  );
+}
+```
+
+### React Query Configuration
+
+**Query Key:** `['streamingAlbum', playlistId, imgCover]`
+
+The query key includes both parameters to ensure proper caching per album.
+
+---
+
+## UseIdPlayList
+
+### Description
+
+Fetches detailed album metadata using a YouTube Music browse ID. This is an async function (not a React Query hook) that returns album information including artist, year, type, and thumbnails.
+
+### Import
+
+```typescript
+import { UseIdPlayList } from 'hooks/UseAlbum/UseIdAlbum';
+```
+
+### Function Signature
+
+```typescript
+async function UseIdPlayList(
+  browseId: string
+): Promise<AlbumSearch | null>
+```
+
+### Parameters
+
+<ParamField path="browseId" type="string" required>
+  The YouTube Music browse ID for the album
+</ParamField>
+
+### Return Value
+
+Returns a Promise that resolves to an `AlbumSearch` object or `null` if an error occurs.
+
+<ResponseField name="playlistId" type="string">
+  The playlist ID for streaming the album
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Album name
+</ResponseField>
+
+<ResponseField name="artist" type="object">
+  Artist information
+  <Expandable title="Artist properties">
+    <ResponseField name="artistId" type="string">
+      Unique artist identifier (browse ID)
+    </ResponseField>
+    <ResponseField name="name" type="string">
+      Artist name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="year" type="string">
+  Release year
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Album type (e.g., "Album", "Single", "EP")
+</ResponseField>
+
+<ResponseField name="thumbnails" type="Thumbnail[]">
+  Array of album cover thumbnails
+  <Expandable title="Thumbnail properties">
+    <ResponseField name="url" type="string">
+      Image URL
+    </ResponseField>
+    <ResponseField name="width" type="number">
+      Image width in pixels
+    </ResponseField>
+    <ResponseField name="height" type="number">
+      Image height in pixels
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Usage Example
+
+```typescript
+import { UseIdPlayList } from 'hooks/UseAlbum/UseIdAlbum';
+import { useEffect, useState } from 'react';
+
+function AlbumDetails({ browseId }) {
+  const [album, setAlbum] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchAlbum() {
+      try {
+        const albumData = await UseIdPlayList(browseId);
+        setAlbum(albumData);
+      } catch (error) {
+        console.error('Failed to fetch album:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchAlbum();
+  }, [browseId]);
+
+  if (loading) return <Text>Loading...</Text>;
+  if (!album) return <Text>Album not found</Text>;
+
+  return (
+    <View>
+      <Text>{album.name}</Text>
+      <Text>{album.artist.name}</Text>
+      <Text>{album.year} • {album.type}</Text>
+      <Image source={{ uri: album.thumbnails[0]?.url }} />
+    </View>
+  );
+}
+```
+
+### Notes
+
+- This function makes direct API calls to YouTube Music's internal API
+- Returns `null` if the album cannot be found or if an error occurs
+- Uses the iOS Music client configuration for API requests
+- The `playlistId` from the response can be used with `useStreamingAlbum` to fetch tracks
+
+## Common Patterns
+
+Combining both functions to display an album with tracks:
+
+```typescript
+function FullAlbumView({ browseId }) {
+  const [albumInfo, setAlbumInfo] = useState(null);
+
+  useEffect(() => {
+    UseIdPlayList(browseId).then(setAlbumInfo);
+  }, [browseId]);
+
+  const { data: tracks, isLoading } = useStreamingAlbum(
+    albumInfo?.playlistId || '',
+    albumInfo?.thumbnails[0]?.url || ''
+  );
+
+  if (!albumInfo) return <Text>Loading album info...</Text>;
+  if (isLoading) return <Text>Loading tracks...</Text>;
+
+  return (
+    <View>
+      <Text>{albumInfo.name}</Text>
+      <Text>{albumInfo.artist.name}</Text>
+      <FlatList data={tracks} renderItem={({ item }) => (
+        <Text>{item.title} - {item.artist}</Text>
+      )} />
+    </View>
+  );
+}
+```

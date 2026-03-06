@@ -1,0 +1,243 @@
+---
+title: Player Components
+description: Full-screen music player with controls, track info, and dynamic theming
+---
+
+The Player components create a beautiful full-screen music player experience with dynamic color theming based on album artwork. The player integrates with react-native-track-player for playback control.
+
+## PlayerScreen
+
+The main player screen component that composes all player sub-components into a full-screen experience.
+
+### Features
+
+- Dynamic gradient background based on album artwork colors
+- Real-time color extraction from track artwork
+- Responsive layout with flex-based positioning
+- Integration with navigation and track player
+
+### Usage
+
+```tsx
+import { PlayerScreen } from 'components/PlayerComponents/view/PlayerScreen';
+
+export default function App() {
+  return <PlayerScreen />;
+}
+```
+
+Location: `src/components/PlayerComponents/view/PlayerScreen.tsx:19`
+
+## TrackPlayerControls
+
+Playback control buttons for play/pause, next, and previous track navigation.
+
+### Props
+
+<ParamField path="color" type="string" required>
+  The color to apply to the play/pause button background
+</ParamField>
+
+### Features
+
+- Play/pause toggle with visual state
+- Previous and next track buttons
+- Dynamic button styling
+- Smooth animations with RNBounceable
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { TrackPlayerControls } from 'components/PlayerComponents/components/TrackPlayerControls';
+
+    export function Player() {
+      return (
+        <TrackPlayerControls color="#088bba" />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Dynamic Color">
+    ```tsx
+    import { TrackPlayerControls } from 'components/PlayerComponents/components/TrackPlayerControls';
+    import { useState } from 'react';
+
+    export function Player() {
+      const [color, setColor] = useState('#088bba');
+      
+      return (
+        <TrackPlayerControls color={color} />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/PlayerComponents/components/TrackPlayerControls.tsx:12`
+
+## TrackCover
+
+Displays the album artwork for the currently playing track with fallback support.
+
+### Props
+
+<ParamField path="cover" type="string | null | undefined">
+  URI of the track's album artwork. Falls back to default image if not provided.
+</ParamField>
+
+### Features
+
+- FastImage for optimized image loading
+- High priority image loading
+- Automatic fallback to default artwork
+- Rounded corners styling
+
+### Usage
+
+```tsx
+import { TrackCover } from 'components/PlayerComponents/components/TrackCover';
+import { useActiveTrack } from 'react-native-track-player';
+
+export function Player() {
+  const activeTrack = useActiveTrack();
+  
+  return (
+    <TrackCover cover={activeTrack?.artwork} />
+  );
+}
+```
+
+Location: `src/components/PlayerComponents/components/TrackCover.tsx:10`
+
+## ProgressAndTrackInfo
+
+Displays track progress slider, timestamps, and scrolling track information.
+
+### Props
+
+<ParamField path="lightMuted" type="string" required>
+  Color for the maximum track tint of the progress slider
+</ParamField>
+
+<ParamField path="mutued" type="string" required>
+  Color for the thumb and minimum track tint of the progress slider
+</ParamField>
+
+### Features
+
+- Interactive progress slider with seek functionality
+- Current position and total duration display
+- Scrolling marquee text for long track titles
+- Artist name display with text ticker
+- Real-time progress updates
+
+### Usage
+
+<Tabs>
+  <Tab title="Basic">
+    ```tsx
+    import { ProgressAndTrackInfo } from 'components/PlayerComponents/components/ProgressAndTrackInfo';
+
+    export function Player() {
+      return (
+        <ProgressAndTrackInfo 
+          lightMuted="#5361b5"
+          mutued="#088bba"
+        />
+      );
+    }
+    ```
+  </Tab>
+  <Tab title="With Dynamic Colors">
+    ```tsx
+    import { ProgressAndTrackInfo } from 'components/PlayerComponents/components/ProgressAndTrackInfo';
+    import { useEffect, useState } from 'react';
+
+    export function Player({ artwork }) {
+      const [colors, setColors] = useState({
+        lightMuted: '#5361b5',
+        mutued: '#088bba'
+      });
+
+      useEffect(() => {
+        // Extract colors from artwork
+        const getColors = async () => {
+          const extracted = await ImageColorPalette(artwork);
+          setColors({
+            lightMuted: extracted.average,
+            mutued: extracted.average
+          });
+        };
+        getColors();
+      }, [artwork]);
+      
+      return (
+        <ProgressAndTrackInfo 
+          lightMuted={colors.lightMuted}
+          mutued={colors.mutued}
+        />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Location: `src/components/PlayerComponents/components/ProgressAndTrackInfo.tsx:16`
+
+## ActionsAndOptions
+
+Additional player actions like queue management and track options menu.
+
+### Features
+
+- Queue/playlist navigation button
+- Track options menu (opens bottom sheet modal)
+- Integration with track stack store
+- Track details and actions
+
+### Usage
+
+```tsx
+import { ActionsAndOptions } from 'components/PlayerComponents/components/ActionsAndOptions';
+
+export function Player() {
+  return (
+    <ActionsAndOptions />
+  );
+}
+```
+
+Location: `src/components/PlayerComponents/components/ActionsAndOptions.tsx:18`
+
+## State Management
+
+The player components integrate with several state management hooks:
+
+- `useActiveTrack()` - Current track information from react-native-track-player
+- `useIsTrackPlaying()` - Playback state
+- `useProgress()` - Track progress and duration
+- `useTrackStackStore()` - Queue management
+- `useBottomSheetStore()` - Modal presentation
+
+## Integration Example
+
+```tsx
+import { PlayerScreen } from 'components/PlayerComponents/view/PlayerScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+const Stack = createNativeStackNavigator();
+
+export function AppNavigator() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="Player" 
+        component={PlayerScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+}
+```
